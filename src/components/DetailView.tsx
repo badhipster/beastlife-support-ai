@@ -53,6 +53,8 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
           subject: thread.topic,
           message: thread.messages[thread.messages.length - 1]?.content || '',
           senderName: thread.senderName,
+          category: thread.category,
+          sentiment: thread.sentiment,
         }),
       });
 
