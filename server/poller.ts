@@ -12,13 +12,17 @@ import { evaluateEscalation } from './escalation';
 
 let timer: NodeJS.Timeout | null = null;
 let running = false;
+// Only ingest mail received after the app started watching, so connecting a
+// real/personal inbox never vacuums its existing history (and never burns the
+// LLM quota on it). New mail sent during a session is picked up normally.
+const POLL_SINCE = Math.floor(Date.now() / 1000);
 
 export function startPoller(intervalMs = 60000): void {
   if (timer) return;
   timer = setInterval(() => {
     tick().catch((e) => console.error('Poller tick error:', e));
   }, intervalMs);
-  console.log(`Gmail poller armed (every ${intervalMs / 1000}s); idle until an inbox is connected.`);
+  console.log(`Gmail poller armed (every ${intervalMs / 1000}s); only mail after ${new Date(POLL_SINCE * 1000).toISOString()} will be ingested.`);
 }
 
 async function tick(): Promise<void> {
@@ -26,7 +30,7 @@ async function tick(): Promise<void> {
   if (!isGmailConfigured() || !(await isConnected())) return;
   running = true;
   try {
-    const ids = await listUnprocessed(10);
+    const ids = await listUnprocessed(10, POLL_SINCE);
     for (const id of ids) {
       try {
         await ingestOne(id);

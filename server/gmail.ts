@@ -107,15 +107,15 @@ function parseFrom(from: string): { name: string; email: string } {
   return { name: from.trim(), email: from.trim() };
 }
 
-// List inbox messages not yet labelled BL/Processed (the dedup gate), newest week.
-export async function listUnprocessed(max = 10): Promise<string[]> {
+// List inbox messages not yet labelled BL/Processed (the dedup gate). When
+// afterEpoch is given, only mail received after that time is returned, so a
+// real/personal inbox's existing history is never ingested — only new mail that
+// arrives while the app is watching.
+export async function listUnprocessed(max = 10, afterEpoch?: number): Promise<string[]> {
   const gmail = await gmailClient();
   if (!gmail) return [];
-  const res = await gmail.users.messages.list({
-    userId: 'me',
-    q: `in:inbox -label:${PROCESSED_LABEL} newer_than:7d`,
-    maxResults: max,
-  });
+  const q = `in:inbox -label:${PROCESSED_LABEL}` + (afterEpoch ? ` after:${afterEpoch}` : ' newer_than:7d');
+  const res = await gmail.users.messages.list({ userId: 'me', q, maxResults: max });
   return (res.data.messages || []).map((m) => m.id!).filter(Boolean);
 }
 
