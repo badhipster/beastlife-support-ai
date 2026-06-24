@@ -1,12 +1,11 @@
 import React from 'react';
-import { 
-  Zap, 
-  Inbox, 
-  AlertTriangle, 
-  BarChart3, 
-  BookOpen, 
-  Settings, 
-  SquarePen,
+import {
+  Zap,
+  Inbox,
+  AlertTriangle,
+  BarChart3,
+  BookOpen,
+  Settings,
   Compass
 } from 'lucide-react';
 
@@ -26,48 +25,13 @@ export default function Sidebar({
   onboardingCompleted
 }: SidebarProps) {
   
-  // Decide active profile based on the loaded tabs
-  const getAgentProfile = () => {
-    switch (activeTab) {
-      case 'analytics':
-        return {
-          name: 'Alex Chen',
-          role: 'Support Lead',
-          initials: 'AC',
-          photo: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=80&h=80&q=80'
-        };
-      case 'kb':
-        return {
-          name: 'Alex Miller',
-          role: 'KB Admin',
-          initials: 'AM',
-          photo: 'https://images.unsplash.com/photo-1519085360753-af0119f7cbe7?auto=format&fit=crop&w=80&h=80&q=80'
-        };
-      case 'escalations':
-        return {
-          name: 'Marcus Chen',
-          role: 'Senior Lead Agent',
-          initials: 'MC',
-          photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=80&h=80&q=80'
-        };
-      case 'settings':
-        return {
-          name: 'Support Admin',
-          role: 'Tier 3 Agent',
-          initials: 'SA',
-          photo: ''
-        };
-      default:
-        return {
-          name: 'Alex Carter',
-          role: 'Lead Agent',
-          initials: 'AC',
-          photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&h=80&q=80'
-        };
-    }
+  // Single consistent agent identity across all tabs.
+  const agent = {
+    name: 'Alex Carter',
+    role: 'Lead Agent',
+    initials: 'AC',
+    photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&h=80&q=80'
   };
-
-  const agent = getAgentProfile();
 
   const navItems = [
     { id: 'inbox', label: 'Inbox', icon: Inbox, count: openThreadsCount, color: 'text-emerald-400' },
@@ -91,16 +55,6 @@ export default function Sidebar({
         </div>
       </div>
 
-      {/* Compose Button */}
-      <div className="px-4 mb-6">
-        <button 
-          onClick={() => setActiveTab('inbox')} 
-          className="w-full bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-medium text-sm flex items-center justify-center gap-2 transition-all duration-200 active:scale-95 shadow-md shadow-emerald-900/10"
-        >
-          <SquarePen className="w-4 h-4" />
-          Compose
-        </button>
-      </div>
 
       {/* Navigation */}
       <nav className="flex-1 space-y-1 px-2">

@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { EmailThread } from '../types';
-import { 
-  AlertTriangle, 
-  Clock, 
-  ShieldCheck, 
-  Sparkles, 
-  Zap, 
+import {
+  AlertTriangle,
+  ShieldCheck,
+  Sparkles,
+  Zap,
   ArrowRight,
   BookmarkCheck,
   UserCheck,
@@ -20,21 +19,10 @@ interface EscalationTabProps {
 
 export default function EscalationTab({ threads, onSelectThread, onClaimThread }: EscalationTabProps) {
   const escalatedThreads = threads.filter(t => t.status === 'Escalated');
-  const [seconds, setSeconds] = useState(522); // ~8m 42s
-
-  // Live countdown timer simulation
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setSeconds(prev => (prev > 0 ? prev - 1 : 1200));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
-
-  const formatTimer = (sec: number) => {
-    const m = Math.floor(sec / 60);
-    const s = sec % 60;
-    return `${m}m ${s < 10 ? '0' : ''}${s}s`;
-  };
+  const total = threads.length;
+  const draftsReady = threads.filter(t => t.draftStatus === 'Draft ready' || t.draftStatus === 'Draft prepared').length;
+  const openCount = threads.filter(t => t.status === 'Open').length;
+  const draftRatio = total ? Math.round((draftsReady / total) * 100) : 0;
 
   const getTriggerIcon = (category: string) => {
     if (category === 'Legal') return <AlertTriangle className="w-4 h-4 text-rose-500 shrink-0 mt-0.5" />;
@@ -52,43 +40,31 @@ export default function EscalationTab({ threads, onSelectThread, onClaimThread }
             <AlertTriangle className="w-5.5 h-5.5 fill-current" />
           </div>
           <div className="flex-1">
-            <h3 className="text-sm font-bold text-slate-800">SLA Breach Red Alert</h3>
+            <h3 className="text-sm font-bold text-slate-800">Human review required</h3>
             <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-              We detected <span className="font-bold text-red-600">{escalatedThreads.length} active critical cases</span> in the escalation queue that require human inspection. These cases bypassed standard auto-replies due to legal keywords, VIP metadata tags, or food safety risks.
+              <span className="font-bold text-red-600">{escalatedThreads.length} {escalatedThreads.length === 1 ? 'case' : 'cases'}</span> were flagged by the escalation engine and were not auto-drafted, per the guardrails: legal or regulatory language, health or adverse reactions, angry repeat contacts, VIP accounts, attachments to review, or quality complaints missing evidence.
             </p>
-          </div>
-          <div className="hidden sm:flex flex-col items-end shrink-0">
-            <span className="text-[10px] font-bold text-red-700 bg-red-100/50 px-2 py-0.5 rounded-full uppercase tracking-wider">Breach Warning</span>
-            <span className="text-xs font-mono font-bold text-red-600 mt-1.5 flex items-center gap-1">
-              <Clock className="w-3.5 h-3.5 animate-pulse" />
-              {formatTimer(seconds)} to SLA Breach
-            </span>
           </div>
         </div>
 
-        {/* SLA stats row */}
+        {/* Real queue stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* SLA Compliance tracker */}
           <div className="bg-white border border-slate-200 rounded-2xl p-4.5 shadow-sm">
-            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Quarterly SLA Compliance</p>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Cases needing review</p>
             <div className="flex justify-between items-baseline mt-2">
-              <span className="text-2xl font-bold text-slate-800">94.8%</span>
-              <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">+1.2% this week</span>
+              <span className="text-2xl font-bold text-slate-800">{escalatedThreads.length}</span>
+              <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded">Escalated</span>
             </div>
-            {/* Custom progress bar */}
-            <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
-              <div className="bg-emerald-500 h-full rounded-full" style={{ width: '94.8%' }} />
-            </div>
+            <p className="text-[10px] text-slate-400 mt-2">No auto-action taken; a human approves any reply.</p>
           </div>
-          {/* Average response */}
           <div className="bg-white border border-slate-200 rounded-2xl p-4.5 shadow-sm">
-            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Avg Response Wait Time</p>
+            <p className="text-[10px] uppercase font-bold tracking-widest text-slate-400">Drafts ready to send</p>
             <div className="flex justify-between items-baseline mt-2">
-              <span className="text-2xl font-bold text-slate-800">14m 24s</span>
-              <span className="text-xs font-semibold text-rose-600 bg-rose-50 px-2 py-0.5 rounded">-4m wait spike</span>
+              <span className="text-2xl font-bold text-slate-800">{draftsReady}</span>
+              <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{draftRatio}% of inbox</span>
             </div>
             <div className="w-full bg-slate-100 h-2 rounded-full mt-3 overflow-hidden">
-              <div className="bg-amber-500 h-full rounded-full" style={{ width: '78%' }} />
+              <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${draftRatio}%` }} />
             </div>
           </div>
         </div>
@@ -170,52 +146,44 @@ export default function EscalationTab({ threads, onSelectThread, onClaimThread }
           </p>
 
           <div className="pt-2 border-t border-slate-800 flex items-center justify-between text-xs font-semibold">
-            <span className="text-slate-400">Total Drafts Generated</span>
-            <span className="text-emerald-400">4,051 (84%)</span>
+            <span className="text-slate-400">Drafts ready in inbox</span>
+            <span className="text-emerald-400">{draftsReady} of {total} ({draftRatio}%)</span>
           </div>
         </div>
 
-        {/* Dynamic De-escalation Checklist */}
+        {/* Escalation handling protocol (static reference, mirrors the guardrails) */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Audit Protocol Checked</h4>
+            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Escalation handling protocol</h4>
             <BookmarkCheck className="w-4 h-4 text-emerald-500" />
           </div>
 
           <div className="space-y-2.5">
             {[
-              { text: 'Acknowledge recipient complaints within 15 minutes.', checked: true },
-              { text: 'Query local database for recent logistics records.', checked: true },
-              { text: 'Verify batch quality status via QC manager logs.', checked: false },
-              { text: 'Propose dynamic standard refund or free shaker bottle.', checked: false },
-              { text: 'Escalate legal concerns directly to legal liaison.', checked: false }
-            ].map((item, idx) => (
+              'Quality complaint: request a photo or unboxing video before resolving.',
+              'Legal or regulatory: never admit liability or offer a settlement.',
+              'Health or adverse reaction: advise stop use and consult a professional.',
+              'VIP / repeat angry contact: prioritize and respond personally.',
+              'A human approves every reply before it sends.',
+            ].map((text, idx) => (
               <div key={idx} className="flex items-start gap-2.5">
-                <div className={`w-4 h-4 rounded-full mt-0.5 flex items-center justify-center border shrink-0 ${
-                  item.checked 
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-600' 
-                    : 'border-slate-300 bg-slate-50'
-                }`}>
-                  {item.checked && <span className="text-[9px] font-bold">✓</span>}
-                </div>
-                <span className={`text-xs ${item.checked ? 'text-slate-400 line-through' : 'text-slate-600'}`}>
-                  {item.text}
-                </span>
+                <div className="w-1.5 h-1.5 rounded-full mt-1.5 bg-emerald-500 shrink-0" />
+                <span className="text-xs text-slate-600 leading-snug">{text}</span>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Resources Cards */}
+        {/* Reference docs (KB-backed) */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-3.5">
-          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Team Quicklinks</h4>
+          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Knowledge base references</h4>
           <div className="space-y-2 text-xs font-medium">
-            <a href="#" className="block p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-slate-700 transition-colors">
-              📜 BeastLife Returns Refund Standards v4.2
-            </a>
-            <a href="#" className="block p-2.5 bg-slate-50 hover:bg-slate-100 rounded-lg text-slate-700 transition-colors">
-              🧪 Batch Analysis Certificate of Authenticity (COA)
-            </a>
+            <div className="block p-2.5 bg-slate-50 rounded-lg text-slate-700">
+              📜 Returns &amp; Refunds policy (care@beastlife.in, 2-day window)
+            </div>
+            <div className="block p-2.5 bg-slate-50 rounded-lg text-slate-700">
+              🧪 Product Quality Issues: evidence required by issue type
+            </div>
           </div>
         </div>
       </div>

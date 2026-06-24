@@ -163,6 +163,14 @@ export async function kbChunkCount(): Promise<number> {
   return parseInt(rows[0]?.count || '0', 10);
 }
 
+export async function kbCategoryCounts(): Promise<{ category: string; count: number }[]> {
+  if (!isDbConfigured()) return [];
+  const rows = await query<{ category: string; count: string }>(
+    'select coalesce(category, \'Uncategorized\') as category, count(*)::text as count from kb_chunks group by category order by count desc'
+  );
+  return rows.map((r) => ({ category: r.category, count: parseInt(r.count, 10) }));
+}
+
 // --- Gmail account (single connected inbox in v1) ---
 
 export interface Account {

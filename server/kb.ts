@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { embedText } from './llm';
-import { searchKbChunks, kbChunkCount } from './db/repo';
+import { searchKbChunks, kbChunkCount, kbCategoryCounts } from './db/repo';
 
 export interface KBChunk {
   id: string;
@@ -105,6 +105,24 @@ async function usePgvector(): Promise<boolean> {
     }
   }
   return pgvectorReady;
+}
+
+export interface KbStats {
+  totalChunks: number;
+  sections: { category: string; count: number }[];
+}
+
+// Real KB stats for the Knowledge Base tab: from pgvector when seeded, else the
+// in-memory index.
+export async function kbStats(): Promise<KbStats> {
+  if (await usePgvector()) {
+    const sections = await kbCategoryCounts();
+    return { totalChunks: sections.reduce((n, s) => n + s.count, 0), sections };
+  }
+  const map = new Map<string, number>();
+  INDEX.forEach((e) => map.set(e.category, (map.get(e.category) || 0) + 1));
+  const sections = [...map.entries()].map(([category, count]) => ({ category, count })).sort((a, b) => b.count - a.count);
+  return { totalChunks: INDEX.length, sections };
 }
 
 export async function retrieveKB(query: string, k = 4): Promise<RetrieveResult> {

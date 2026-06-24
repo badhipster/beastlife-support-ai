@@ -2,7 +2,7 @@ import express from 'express';
 import path from 'path';
 import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
-import { retrieveKB } from './server/kb';
+import { retrieveKB, kbStats } from './server/kb';
 import { evaluateEscalation } from './server/escalation';
 import { classifyEmail, generateGroundedDraft } from './server/pipeline';
 import {
@@ -164,6 +164,59 @@ app.get('/api/rules', async (_req, res) => {
   } catch (error: any) {
     console.error('List rules error:', error);
     res.status(500).json({ error: error.message || 'Error listing rules' });
+  }
+});
+
+// Analytics computed live from the stored threads (PRD 6.7). Numbers move as
+// real emails are ingested, classified, escalated, and replied.
+app.get('/api/analytics', async (_req, res) => {
+  try {
+    const threads = await listThreads();
+    const total = threads.length;
+    const by = (pred: (t: typeof threads[number]) => boolean) => threads.filter(pred).length;
+    const escalated = by((t) => t.status === 'Escalated');
+    const replied = by((t) => t.status === 'Replied');
+    const open = by((t) => t.status === 'Open');
+    const inQueue = by((t) => t.status === 'In Queue');
+    const closed = by((t) => t.status === 'Closed');
+    const drafted = by((t) => t.draftStatus === 'Draft ready' || t.draftStatus === 'Draft prepared');
+
+    const group = (key: (t: typeof threads[number]) => string) => {
+      const map = new Map<string, number>();
+      threads.forEach((t) => {
+        const k = key(t) || 'Unknown';
+        map.set(k, (map.get(k) || 0) + 1);
+      });
+      return [...map.entries()].map(([label, count]) => ({ label, count })).sort((a, b) => b.count - a.count);
+    };
+
+    res.json({
+      total,
+      escalated,
+      replied,
+      open,
+      inQueue,
+      closed,
+      drafted,
+      draftRatioPct: total ? Math.round((drafted / total) * 100) : 0,
+      resolutionPct: total ? Math.round(((replied + closed) / total) * 100) : 0,
+      byStatus: group((t) => t.status),
+      byCategory: group((t) => t.category),
+      bySentiment: group((t) => t.sentiment),
+    });
+  } catch (error: any) {
+    console.error('Analytics error:', error);
+    res.status(500).json({ error: error.message || 'Error computing analytics' });
+  }
+});
+
+// KB stats: real chunk counts per category (Knowledge Base tab).
+app.get('/api/kb/stats', async (_req, res) => {
+  try {
+    res.json(await kbStats());
+  } catch (error: any) {
+    console.error('KB stats error:', error);
+    res.status(500).json({ error: error.message || 'Error computing KB stats' });
   }
 });
 
