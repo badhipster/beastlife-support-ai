@@ -1,0 +1,6 @@
+{
+  "name": "BeastLife Support AI",
+  "description": "AI-powered customer support inbox, escalations manager, knowledge base, and analytics workspace.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
