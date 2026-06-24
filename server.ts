@@ -35,9 +35,9 @@ function getGeminiClient(): GoogleGenAI | null {
 // 1. API: Generate Draft Response with Gemini
 app.post('/api/generate-draft', async (req, res) => {
   try {
-    const { ticketSubject, ticketMessage, senderName } = req.body;
-    if (!ticketMessage) {
-      return res.status(400).json({ error: 'ticketMessage is required' });
+    const { subject, message, senderName } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: 'message is required' });
     }
 
     const ai = getGeminiClient();
@@ -45,7 +45,7 @@ app.post('/api/generate-draft', async (req, res) => {
       // High-quality pre-programmed offline response
       let mockDraft = `Dear ${senderName || 'Valued Customer'},
 
-Thank you for reaching out to BeastLife Support. We have received your inquiry regarding "${ticketSubject || 'your order'}".
+Thank you for reaching out to BeastLife Support. We have received your inquiry regarding "${subject || 'your order'}".
 
 Regarding your concerns:
 1. Product Mixability & Texture: For optimal outcomes, we recommend mixing protein scoops in liquid under 45°C. High temperature (such as boiling water) will cause natural protein coagulation and clumping. 
@@ -59,7 +59,7 @@ BeastLife AI Support Agent`;
     }
 
     const systemPrompt = `You are the core AI agent of BeastLife Support, a high-performance sports nutrition and supplements brand. 
-Your goal is to draft a helpful, professional, and structured response to a customer support ticket.
+Your goal is to draft a helpful, professional, and structured response to a customer support email.
 Adapt your style to the specific issue (e.g. resolve delivery delays, give mixability advice for whey protein, clarify refunds, ensure safety).
 
 Here are key knowledge notes:
@@ -69,9 +69,9 @@ Here are key knowledge notes:
 - Keep the tone clean, composed, and encouraging but professional. Always sign off as 'BeastLife Support Agent'.`;
 
     const promptUser = `Customer Name: ${senderName || 'Valued Customer'}
-Ticket Subject: "${ticketSubject}"
-Ticket Message:
-"${ticketMessage}"
+Email Subject: "${subject}"
+Email Message:
+"${message}"
 
 Draft a professional email response. Address them politely, answer their concerns clearly, request evidence (like photo of batch number on bottom of tub) if logical for quality issues, and sign off nicely.`;
 
@@ -93,7 +93,7 @@ Draft a professional email response. Address them politely, answer their concern
       isSimulated = true;
       responseText = `Dear ${senderName || 'Valued Customer'},
 
-Thank you for reaching out to BeastLife Support. We have received your inquiry regarding "${ticketSubject || 'your order'}".
+Thank you for reaching out to BeastLife Support. We have received your inquiry regarding "${subject || 'your order'}".
 
 Regarding your concerns:
 1. Product Mixability & Texture: For optimal outcomes, we recommend mixing protein scoops in liquid under 45°C. High temperature (such as boiling water) will cause natural protein coagulation and clumping. 

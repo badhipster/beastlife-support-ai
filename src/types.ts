@@ -1,5 +1,5 @@
 export type Sentiment = 'Frustrated' | 'Angry' | 'Neutral' | 'Sad' | 'Happy';
-export type TicketStatus = 'Open' | 'Replied' | 'Escalated' | 'In Queue' | 'Closed';
+export type EmailStatus = 'Open' | 'Replied' | 'Escalated' | 'In Queue' | 'Closed';
 
 export interface Message {
   id: string;
@@ -9,7 +9,7 @@ export interface Message {
   isCustomer: boolean;
 }
 
-export interface Ticket {
+export interface EmailThread {
   id: string;
   senderName: string;
   senderEmail: string;
@@ -18,7 +18,7 @@ export interface Ticket {
   sentiment: Sentiment;
   brief: string;
   draftStatus: 'Draft ready' | 'Draft prepared' | 'Needs action' | 'Approved' | 'Sent';
-  status: TicketStatus;
+  status: EmailStatus;
   waitingTime: string;
   orderId: string;
   contactCount: number;

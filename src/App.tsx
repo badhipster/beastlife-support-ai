@@ -9,22 +9,22 @@ import KnowledgeBaseTab from './components/KnowledgeBaseTab';
 import SettingsTab from './components/SettingsTab';
 import OnboardingTab from './components/OnboardingTab';
 
-import { INITIAL_TICKETS, INITIAL_RULES } from './data/mockData';
-import { Ticket, SettingsRule } from './types';
+import { INITIAL_THREADS, INITIAL_RULES } from './data/mockData';
+import { EmailThread, SettingsRule } from './types';
 
 export default function App() {
-  const [tickets, setTickets] = useState<Ticket[]>(INITIAL_TICKETS);
+  const [threads, setThreads] = useState<EmailThread[]>(INITIAL_THREADS);
   const [rules, setRules] = useState<SettingsRule[]>(INITIAL_RULES);
   const [selectedAgent, setSelectedAgent] = useState<string>('Alex Carter');
   const [activeTab, setActiveTab] = useState<string>('inbox');
   const [subTab, setSubTab] = useState<'all' | 'queue' | 'team'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
+  const [selectedThread, setSelectedThread] = useState<EmailThread | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
 
   // Derive counts dynamically
-  const openTicketsCount = tickets.filter(t => t.status === 'Open').length;
-  const escalatedCount = tickets.filter(t => t.status === 'Escalated').length;
+  const openThreadsCount = threads.filter(t => t.status === 'Open').length;
+  const escalatedCount = threads.filter(t => t.status === 'Escalated').length;
 
   // Search query action placeholder helper
   const getSearchPlaceholder = () => {
@@ -37,11 +37,11 @@ export default function App() {
   };
 
   // SubTab Filtering
-  const getFilteredSubtypeTickets = (list: Ticket[]) => {
+  const getFilteredSubtypeThreads = (list: EmailThread[]) => {
     if (subTab === 'queue') {
-      // In a real database, filters by current agent's claimed tickets
-      // Standard mock logic: Claimed are TKT-001, TKT-003, TKT-005
-      return list.filter(t => ['TKT-001', 'TKT-003', 'TKT-005'].includes(t.id));
+      // In a real database, filters by current agent's claimed threads
+      // Standard mock logic: Claimed are THR-001, THR-003, THR-005
+      return list.filter(t => ['THR-001', 'THR-003', 'THR-005'].includes(t.id));
     }
     if (subTab === 'team') {
       return list.filter(t => t.contactCount > 1 || t.status === 'Replied');
@@ -50,9 +50,9 @@ export default function App() {
   };
 
   // Claim click handler
-  const handleClaimTicket = (ticketId: string) => {
-    setTickets(prev => prev.map(t => {
-      if (t.id === ticketId) {
+  const handleClaimThread = (threadId: string) => {
+    setThreads(prev => prev.map(t => {
+      if (t.id === threadId) {
         return {
           ...t,
           status: 'Open', // Claimed moves to open queue
@@ -61,20 +61,20 @@ export default function App() {
       }
       return t;
     }));
-    alert(`Ticket ${ticketId} has been added to your queue!`);
+    alert(`Case ${threadId} has been added to your queue!`);
   };
 
   // Row update callbacks (passed to DetailView)
-  const handleUpdateTicket = (updatedTicket: Ticket) => {
-    setTickets(prev => prev.map(t => {
-      if (t.id === updatedTicket.id) {
-        return updatedTicket;
+  const handleUpdateThread = (updatedThread: EmailThread) => {
+    setThreads(prev => prev.map(t => {
+      if (t.id === updatedThread.id) {
+        return updatedThread;
       }
       return t;
     }));
     // Keep reference in detail view synced
-    if (selectedTicket && selectedTicket.id === updatedTicket.id) {
-      setSelectedTicket(updatedTicket);
+    if (selectedThread && selectedThread.id === updatedThread.id) {
+      setSelectedThread(updatedThread);
     }
   };
 
@@ -86,9 +86,9 @@ export default function App() {
         activeTab={activeTab} 
         setActiveTab={(tab) => {
           setActiveTab(tab); 
-          setSelectedTicket(null); // Clear selected drawer context when shifting tabs
+          setSelectedThread(null); // Clear selected drawer context when shifting tabs
         }} 
-        openTicketsCount={openTicketsCount}
+        openThreadsCount={openThreadsCount}
         escalatedCount={escalatedCount}
         onboardingCompleted={onboardingCompleted}
       />
@@ -110,28 +110,28 @@ export default function App() {
         {/* MAIN VISUAL WORKSPACE PANEL */}
         <main className="flex-1 flex flex-col overflow-hidden relative">
           
-          {selectedTicket ? (
+          {selectedThread ? (
             <DetailView 
-              ticket={selectedTicket} 
-              onBack={() => setSelectedTicket(null)}
-              onUpdateTicket={handleUpdateTicket}
+              thread={selectedThread} 
+              onBack={() => setSelectedThread(null)}
+              onUpdateThread={handleUpdateThread}
             />
           ) : (
             <>
               {/* Tab routing views */}
               {activeTab === 'inbox' && (
                 <InboxTab 
-                  tickets={getFilteredSubtypeTickets(tickets)} 
-                  onSelectTicket={(ticket) => setSelectedTicket(ticket)}
+                  threads={getFilteredSubtypeThreads(threads)} 
+                  onSelectThread={(thread) => setSelectedThread(thread)}
                   searchQuery={searchQuery}
                 />
               )}
 
               {activeTab === 'escalations' && (
                 <EscalationTab 
-                  tickets={tickets} 
-                  onSelectTicket={(ticket) => setSelectedTicket(ticket)}
-                  onClaimTicket={handleClaimTicket}
+                  threads={threads} 
+                  onSelectThread={(thread) => setSelectedThread(thread)}
+                  onClaimThread={handleClaimThread}
                 />
               )}
 

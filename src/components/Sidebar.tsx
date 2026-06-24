@@ -13,7 +13,7 @@ import {
 interface SidebarProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
-  openTicketsCount: number;
+  openThreadsCount: number;
   escalatedCount: number;
   onboardingCompleted: boolean;
 }
@@ -21,7 +21,7 @@ interface SidebarProps {
 export default function Sidebar({
   activeTab,
   setActiveTab,
-  openTicketsCount,
+  openThreadsCount,
   escalatedCount,
   onboardingCompleted
 }: SidebarProps) {
@@ -70,7 +70,7 @@ export default function Sidebar({
   const agent = getAgentProfile();
 
   const navItems = [
-    { id: 'inbox', label: 'Inbox', icon: Inbox, count: openTicketsCount, color: 'text-emerald-400' },
+    { id: 'inbox', label: 'Inbox', icon: Inbox, count: openThreadsCount, color: 'text-emerald-400' },
     { id: 'escalations', label: 'Escalations', icon: AlertTriangle, count: escalatedCount, color: 'text-red-400' },
     { id: 'analytics', label: 'Analytics', icon: BarChart3 },
     { id: 'kb', label: 'Knowledge Base', icon: BookOpen },

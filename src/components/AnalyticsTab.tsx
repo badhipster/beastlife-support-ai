@@ -39,12 +39,12 @@ export default function AnalyticsTab() {
   ];
 
   const categoryDistribution = [
-    { category: 'Product Issue', tickets: 1540, ratio: 32 },
-    { category: 'Billing & Payments', tickets: 1152, ratio: 24 },
-    { category: 'Delivery Logistics', tickets: 960, ratio: 20 },
-    { category: 'General / Advice', tickets: 576, ratio: 12 },
-    { category: 'Legal / Compliance', tickets: 384, ratio: 8 },
-    { category: 'Gourmet Feedback', tickets: 192, ratio: 4 }
+    { category: 'Product Issue', count: 1540, ratio: 32 },
+    { category: 'Billing & Payments', count: 1152, ratio: 24 },
+    { category: 'Delivery Logistics', count: 960, ratio: 20 },
+    { category: 'General / Advice', count: 576, ratio: 12 },
+    { category: 'Legal / Compliance', count: 384, ratio: 8 },
+    { category: 'Gourmet Feedback', count: 192, ratio: 4 }
   ];
 
   return (
@@ -261,7 +261,7 @@ export default function AnalyticsTab() {
             <div key={idx} className="p-4 border border-slate-100 rounded-2xl bg-slate-50/50 space-y-2">
               <div className="flex justify-between items-center text-xs">
                 <span className="font-bold text-slate-700">{item.category}</span>
-                <span className="text-[10px] font-mono text-slate-400">{item.tickets.toLocaleString()} tickets</span>
+                <span className="text-[10px] font-mono text-slate-400">{item.count.toLocaleString()} emails</span>
               </div>
               <div className="flex items-center gap-3">
                 {/* Horizontal custom bar */}

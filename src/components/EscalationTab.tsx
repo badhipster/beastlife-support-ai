@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket } from '../types';
+import { EmailThread } from '../types';
 import { 
   AlertTriangle, 
   Clock, 
@@ -13,13 +13,13 @@ import {
 } from 'lucide-react';
 
 interface EscalationTabProps {
-  tickets: Ticket[];
-  onSelectTicket: (ticket: Ticket) => void;
-  onClaimTicket: (ticketId: string) => void;
+  threads: EmailThread[];
+  onSelectThread: (thread: EmailThread) => void;
+  onClaimThread: (threadId: string) => void;
 }
 
-export default function EscalationTab({ tickets, onSelectTicket, onClaimTicket }: EscalationTabProps) {
-  const escalatedTickets = tickets.filter(t => t.status === 'Escalated');
+export default function EscalationTab({ threads, onSelectThread, onClaimThread }: EscalationTabProps) {
+  const escalatedThreads = threads.filter(t => t.status === 'Escalated');
   const [seconds, setSeconds] = useState(522); // ~8m 42s
 
   // Live countdown timer simulation
@@ -54,7 +54,7 @@ export default function EscalationTab({ tickets, onSelectTicket, onClaimTicket }
           <div className="flex-1">
             <h3 className="text-sm font-bold text-slate-800">SLA Breach Red Alert</h3>
             <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-              We detected <span className="font-bold text-red-600">{escalatedTickets.length} active critical cases</span> in the escalation queue that require human inspection. These tickets bypassed standard auto-replies due to legal keywords, VIP metadata tags, or food safety risks.
+              We detected <span className="font-bold text-red-600">{escalatedThreads.length} active critical cases</span> in the escalation queue that require human inspection. These cases bypassed standard auto-replies due to legal keywords, VIP metadata tags, or food safety risks.
             </p>
           </div>
           <div className="hidden sm:flex flex-col items-end shrink-0">
@@ -93,53 +93,53 @@ export default function EscalationTab({ tickets, onSelectTicket, onClaimTicket }
           </div>
         </div>
 
-        {/* Tickets Under Investigation List */}
+        {/* Cases Under Investigation */}
         <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
           <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Escalated Cases Pending claim</h4>
           
-          {escalatedTickets.length === 0 ? (
+          {escalatedThreads.length === 0 ? (
             <div className="text-center py-10 text-slate-400">
               <ShieldCheck className="w-12 h-12 text-emerald-500 mx-auto stroke-1" />
               <p className="text-sm font-medium mt-3">All clear! Standard response channels are normal.</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {escalatedTickets.map(ticket => (
+              {escalatedThreads.map(thread => (
                 <div 
-                  key={ticket.id}
+                  key={thread.id}
                   className="p-4 border border-rose-100 rounded-xl bg-white hover:bg-rose-50/20 transition-all flex flex-col md:flex-row md:items-center justify-between gap-4 border-l-4 border-l-rose-500 group shadow-sm"
                 >
-                  <div className="space-y-1.5 flex-1 min-w-0" onClick={() => onSelectTicket(ticket)}>
+                  <div className="space-y-1.5 flex-1 min-w-0" onClick={() => onSelectThread(thread)}>
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-[10px] font-mono font-bold text-slate-400">{ticket.id}</span>
-                      <h5 className="text-xs font-bold text-slate-800 truncate">{ticket.senderName}</h5>
+                      <span className="text-[10px] font-mono font-bold text-slate-400">{thread.id}</span>
+                      <h5 className="text-xs font-bold text-slate-800 truncate">{thread.senderName}</h5>
                       <span className="text-[9px] font-bold text-red-600 shrink-0 bg-red-100 px-2 py-0.5 rounded uppercase tracking-tight">
-                        {ticket.sentiment}
+                        {thread.sentiment}
                       </span>
                     </div>
 
                     <p className="text-xs text-slate-700 font-semibold truncate leading-snug">
-                      {ticket.topic}
+                      {thread.topic}
                     </p>
 
                     <div className="flex items-start gap-1.5 text-[11px] text-slate-500 mt-1">
-                      {getTriggerIcon(ticket.category)}
+                      {getTriggerIcon(thread.category)}
                       <p className="italic text-[11px] text-slate-500 leading-snug">
-                        {ticket.triggerReason || 'Trigger Rule Check: Manual supervisor escalation.'}
+                        {thread.triggerReason || 'Trigger Rule Check: Manual supervisor escalation.'}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2.5 shrink-0 self-end md:self-center">
                     <button 
-                      onClick={() => onClaimTicket(ticket.id)}
+                      onClick={() => onClaimThread(thread.id)}
                       className="px-3 py-1.5 bg-slate-900 border border-slate-900 text-white rounded-lg text-xs font-bold hover:bg-slate-800 hover:border-slate-800 transition-all flex items-center gap-1.5"
                     >
                       <UserCheck className="w-3.5 h-3.5" />
                       Claim Case
                     </button>
                     <button 
-                      onClick={() => onSelectTicket(ticket)}
+                      onClick={() => onSelectThread(thread)}
                       className="px-3 py-1.5 bg-white border border-slate-200 text-slate-700 rounded-lg text-xs font-semibold hover:border-slate-300 transition-all flex items-center gap-1 group-hover:text-emerald-600 group-hover:border-emerald-200"
                     >
                       Inspect

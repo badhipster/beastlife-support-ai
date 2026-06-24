@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Ticket, Message, KBChunk } from '../types';
+import { EmailThread, Message, KBChunk } from '../types';
 import { 
   ArrowLeft, 
   Sparkles, 
@@ -17,12 +17,12 @@ import {
 } from 'lucide-react';
 
 interface DetailViewProps {
-  ticket: Ticket;
+  thread: EmailThread;
   onBack: () => void;
-  onUpdateTicket: (updatedTicket: Ticket) => void;
+  onUpdateThread: (updatedThread: EmailThread) => void;
 }
 
-export default function DetailView({ ticket, onBack, onUpdateTicket }: DetailViewProps) {
+export default function DetailView({ thread, onBack, onUpdateThread }: DetailViewProps) {
   const [draftText, setDraftText] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [kbQuery, setKbQuery] = useState<string>('');
@@ -32,9 +32,9 @@ export default function DetailView({ ticket, onBack, onUpdateTicket }: DetailVie
   
   useEffect(() => {
     setDraftText('');
-    setKbQuery(ticket.topic);
-    searchKB(ticket.topic);
-  }, [ticket]);
+    setKbQuery(thread.topic);
+    searchKB(thread.topic);
+  }, [thread]);
 
   // AI draft call using server route
   const generateAIDraft = async () => {
@@ -46,9 +46,9 @@ export default function DetailView({ ticket, onBack, onUpdateTicket }: DetailVie
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          ticketSubject: ticket.topic,
-          ticketMessage: ticket.messages[ticket.messages.length - 1]?.content || '',
-          senderName: ticket.senderName,
+          subject: thread.topic,
+          message: thread.messages[thread.messages.length - 1]?.content || '',
+          senderName: thread.senderName,
         }),
       });
 
@@ -102,27 +102,27 @@ export default function DetailView({ ticket, onBack, onUpdateTicket }: DetailVie
       isCustomer: false
     };
 
-    const updatedTicket: Ticket = {
-      ...ticket,
+    const updatedThread: EmailThread = {
+      ...thread,
       status: 'Replied',
       draftStatus: 'Sent',
-      messages: [...ticket.messages, newReply]
+      messages: [...thread.messages, newReply]
     };
 
-    onUpdateTicket(updatedTicket);
+    onUpdateThread(updatedThread);
     setDraftText('');
-    alert(`Response successfully transmitted to ${ticket.senderEmail}!`);
+    alert(`Response successfully transmitted to ${thread.senderEmail}!`);
     onBack();
   };
 
   const handleEscalate = () => {
-    const updatedTicket: Ticket = {
-      ...ticket,
+    const updatedThread: EmailThread = {
+      ...thread,
       status: 'Escalated',
       draftStatus: 'Needs action',
       triggerReason: `Manually escalated by supervisor for strict legal/technical oversight.`
     };
-    onUpdateTicket(updatedTicket);
+    onUpdateThread(updatedThread);
     alert('Case flagged as Escalated. Supervisors have been alerted.');
   };
 
@@ -158,24 +158,24 @@ export default function DetailView({ ticket, onBack, onUpdateTicket }: DetailVie
             </button>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-sm font-bold text-slate-800">{ticket.senderName}</h3>
-                <span className={`px-2 py-0.5 border text-[9px] font-bold rounded uppercase tracking-wider ${mapSentimentColor(ticket.sentiment)}`}>
-                  {ticket.sentiment}
+                <h3 className="text-sm font-bold text-slate-800">{thread.senderName}</h3>
+                <span className={`px-2 py-0.5 border text-[9px] font-bold rounded uppercase tracking-wider ${mapSentimentColor(thread.sentiment)}`}>
+                  {thread.sentiment}
                 </span>
-                {ticket.status === 'Escalated' && (
+                {thread.status === 'Escalated' && (
                   <span className="px-2 py-0.5 bg-red-100 text-red-600 border border-red-200 rounded text-[9px] font-bold uppercase tracking-wide">
                     Escalated
                   </span>
                 )}
               </div>
-              <p className="text-[10px] text-slate-400 font-mono mt-0.5">{ticket.senderEmail} &bull; Order <span className="font-bold">{ticket.orderId || 'N/A'}</span></p>
+              <p className="text-[10px] text-slate-400 font-mono mt-0.5">{thread.senderEmail} &bull; Order <span className="font-bold">{thread.orderId || 'N/A'}</span></p>
             </div>
           </div>
 
           <div className="flex gap-2.5">
             <button 
               onClick={handleEscalate}
-              disabled={ticket.status === 'Escalated'}
+              disabled={thread.status === 'Escalated'}
               className="px-3 py-1.5 border border-rose-200 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all disabled:opacity-30 flex items-center gap-1.5 cursor-pointer"
             >
               <AlertTriangle className="w-3.5 h-3.5" />
@@ -192,18 +192,18 @@ export default function DetailView({ ticket, onBack, onUpdateTicket }: DetailVie
           </div>
         </div>
 
-        {/* Dynamic Ticket Header Summary Panel */}
+        {/* Dynamic Thread Header Summary Panel */}
         <div className="bg-slate-50/50 border-b border-slate-200 p-4 shrink-0 px-6">
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Subject & Auto-Summary</p>
-          <h4 className="text-xs font-bold text-slate-800 mt-1">{ticket.topic}</h4>
+          <h4 className="text-xs font-bold text-slate-800 mt-1">{thread.topic}</h4>
           <p className="text-xs text-slate-500 italic mt-1 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-            &ldquo;{ticket.brief}&rdquo;
+            &ldquo;{thread.brief}&rdquo;
           </p>
         </div>
 
         {/* Message Thread Scroll Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-5 bg-slate-50/30">
-          {ticket.messages.map((msg) => {
+          {thread.messages.map((msg) => {
             const isCustomer = msg.isCustomer;
             return (
               <div 
@@ -214,7 +214,7 @@ export default function DetailView({ ticket, onBack, onUpdateTicket }: DetailVie
                 <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${
                   isCustomer ? 'bg-[#dae2fd] text-[#131b2e]' : 'bg-emerald-100 text-emerald-800'
                 }`}>
-                  {isCustomer ? ticket.senderName.slice(0, 2).toUpperCase() : 'AI'}
+                  {isCustomer ? thread.senderName.slice(0, 2).toUpperCase() : 'AI'}
                 </div>
 
                 {/* Message Body Block */}

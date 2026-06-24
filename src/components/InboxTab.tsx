@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
-import { Ticket, Sentiment, TicketStatus } from '../types';
+import { EmailThread, Sentiment, EmailStatus } from '../types';
 import { Sparkles, ArrowRight, Check, AlertCircle, CircleDot } from 'lucide-react';
 
 interface InboxTabProps {
-  tickets: Ticket[];
-  onSelectTicket: (ticket: Ticket) => void;
+  threads: EmailThread[];
+  onSelectThread: (thread: EmailThread) => void;
   searchQuery: string;
 }
 
-export default function InboxTab({ tickets, onSelectTicket, searchQuery }: InboxTabProps) {
+export default function InboxTab({ threads, onSelectThread, searchQuery }: InboxTabProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedSentiment, setSelectedSentiment] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
@@ -21,7 +21,7 @@ export default function InboxTab({ tickets, onSelectTicket, searchQuery }: Inbox
   const statuses = ['All', 'Open', 'Escalated', 'Replied', 'In Queue', 'Closed'];
 
   // Apply search query and dropdown filters
-  const filteredTickets = tickets.filter(t => {
+  const filteredThreads = threads.filter(t => {
     // Search query filter
     const matchesSearch = 
       t.senderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -37,14 +37,14 @@ export default function InboxTab({ tickets, onSelectTicket, searchQuery }: Inbox
   });
 
   // Calculate stats
-  const totalOpen = tickets.filter(t => t.status === 'Open').length;
-  const totalDrafts = tickets.filter(t => t.draftStatus === 'Draft ready' || t.draftStatus === 'Draft prepared').length;
+  const totalOpen = threads.filter(t => t.status === 'Open').length;
+  const totalDrafts = threads.filter(t => t.draftStatus === 'Draft ready' || t.draftStatus === 'Draft prepared').length;
 
   // Pagination logic
-  const totalItems = filteredTickets.length;
+  const totalItems = filteredThreads.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedTickets = filteredTickets.slice(startIndex, startIndex + itemsPerPage);
+  const paginatedThreads = filteredThreads.slice(startIndex, startIndex + itemsPerPage);
 
   // Helper styles for sentiments
   const getSentimentBadge = (sentiment: Sentiment) => {
@@ -139,10 +139,10 @@ export default function InboxTab({ tickets, onSelectTicket, searchQuery }: Inbox
           <div className="text-right">Action Status</div>
         </div>
 
-        {/* Ticket List Body */}
-        {paginatedTickets.length === 0 ? (
+        {/* Thread List Body */}
+        {paginatedThreads.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-slate-400 bg-white border border-slate-200 rounded-xl">
-            <p className="text-sm font-medium">No customer tickets found matching the filter criteria.</p>
+            <p className="text-sm font-medium">No emails found matching the filter criteria.</p>
             <button 
               onClick={() => { setSelectedCategory('All'); setSelectedSentiment('All'); setSelectedStatus('All'); }}
               className="mt-4 text-xs font-bold text-emerald-600 hover:underline"
@@ -151,14 +151,14 @@ export default function InboxTab({ tickets, onSelectTicket, searchQuery }: Inbox
             </button>
           </div>
         ) : (
-          paginatedTickets.map((ticket) => {
-            const isEscalated = ticket.status === 'Escalated';
-            const initials = ticket.senderName.split(' ').map(n => n[0]).join('');
+          paginatedThreads.map((thread) => {
+            const isEscalated = thread.status === 'Escalated';
+            const initials = thread.senderName.split(' ').map(n => n[0]).join('');
             
             return (
               <div 
-                key={ticket.id}
-                onClick={() => onSelectTicket(ticket)}
+                key={thread.id}
+                onClick={() => onSelectThread(thread)}
                 className={`grid grid-cols-[1.2fr_1.8fr_2.5fr_1.1fr_1.1fr] items-center px-6 py-4.5 bg-white border rounded-xl hover:bg-slate-50 transition-all cursor-pointer group shadow-sm relative ${
                   isEscalated 
                     ? 'border-l-4 border-l-red-500 border-y border-r border-slate-200' 
@@ -167,22 +167,22 @@ export default function InboxTab({ tickets, onSelectTicket, searchQuery }: Inbox
               >
                 {/* 1. Sender column */}
                 <div className="flex items-center gap-3 overflow-hidden">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${getAvatarBg(ticket.senderName)}`}>
+                  <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${getAvatarBg(thread.senderName)}`}>
                     {initials}
                   </div>
                   <div className="truncate">
-                    <p className="text-xs font-bold text-slate-800 truncate">{ticket.senderName}</p>
-                    <p className="text-[10px] text-slate-500 truncate leading-none mt-0.5">{ticket.senderEmail}</p>
+                    <p className="text-xs font-bold text-slate-800 truncate">{thread.senderName}</p>
+                    <p className="text-[10px] text-slate-500 truncate leading-none mt-0.5">{thread.senderEmail}</p>
                   </div>
                 </div>
 
                 {/* 2. Topic & Sentiment */}
                 <div className="pr-4 overflow-hidden">
-                  <p className="text-xs font-bold text-slate-800 truncate">{ticket.topic}</p>
+                  <p className="text-xs font-bold text-slate-800 truncate">{thread.topic}</p>
                   <div className="flex items-center gap-2 mt-1">
-                    <span className={`px-2 py-0.5 border text-[9px] font-bold rounded flex items-center gap-1 uppercase tracking-tight ${getSentimentBadge(ticket.sentiment)}`}>
+                    <span className={`px-2 py-0.5 border text-[9px] font-bold rounded flex items-center gap-1 uppercase tracking-tight ${getSentimentBadge(thread.sentiment)}`}>
                       <CircleDot className="w-2 h-2 fill-current" />
-                      {ticket.sentiment}
+                      {thread.sentiment}
                     </span>
                   </div>
                 </div>
@@ -190,44 +190,44 @@ export default function InboxTab({ tickets, onSelectTicket, searchQuery }: Inbox
                 {/* 3. AI Brief Column */}
                 <div className="pr-4">
                   <p className="text-xs text-slate-500 italic leading-snug line-clamp-2">
-                    {ticket.brief}
+                    {thread.brief}
                   </p>
                 </div>
 
                 {/* 4. Category & Status Context Badges */}
                 <div className="flex flex-col gap-1 items-start">
                   <span className="px-2 py-0.5 border border-slate-200 rounded text-[9px] font-semibold bg-slate-50 text-slate-700">
-                    {ticket.category}
+                    {thread.category}
                   </span>
                   
-                  {ticket.status === 'Escalated' ? (
+                  {thread.status === 'Escalated' ? (
                     <span className="px-2 py-0.5 bg-purple-100 text-purple-700 border border-purple-200 rounded text-[9px] font-bold flex items-center gap-0.5 uppercase tracking-wide">
                       Escalated
                     </span>
-                  ) : ticket.status === 'Open' ? (
+                  ) : thread.status === 'Open' ? (
                     <span className="px-2 py-0.5 border border-amber-300 text-amber-700 rounded text-[9px] font-semibold uppercase tracking-wide">
                       Open
                     </span>
                   ) : (
                     <span className="px-2 py-0.5 border border-emerald-300 text-emerald-700 rounded text-[9px] font-semibold uppercase tracking-wide">
-                      {ticket.status}
+                      {thread.status}
                     </span>
                   )}
                 </div>
 
                 {/* 5. Action Status indicator - floats right */}
                 <div className="flex justify-end gap-2 items-center text-right overflow-hidden">
-                  {ticket.draftStatus === 'Draft ready' || ticket.draftStatus === 'Draft prepared' ? (
+                  {thread.draftStatus === 'Draft ready' || thread.draftStatus === 'Draft prepared' ? (
                     <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 shrink-0 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100">
                       <Sparkles className="w-3.5 h-3.5 text-emerald-600 fill-current" />
                       Draft ready
                     </span>
-                  ) : ticket.status === 'Escalated' ? (
+                  ) : thread.status === 'Escalated' ? (
                     <button className="text-[10px] font-bold px-2.5 py-1 bg-slate-900 border border-slate-900 hover:bg-slate-800 text-white rounded-lg shrink-0 transition-colors">
-                      {ticket.category === 'Legal' ? 'View Case' : ticket.category === 'Delivery' ? 'Trace Hub' : 'View Ticket'}
+                      {thread.category === 'Legal' ? 'View Case' : thread.category === 'Delivery' ? 'Trace Hub' : 'View Case'}
                     </button>
                   ) : (
-                    <span className="text-[10px] text-slate-400 capitalize">{ticket.draftStatus}</span>
+                    <span className="text-[10px] text-slate-400 capitalize">{thread.draftStatus}</span>
                   )}
                   
                   <ArrowRight className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity ml-1 shrink-0" />
@@ -242,7 +242,7 @@ export default function InboxTab({ tickets, onSelectTicket, searchQuery }: Inbox
       <footer className="p-5.5 flex justify-between items-center border-t border-slate-200 bg-white">
         <div className="flex items-center gap-4">
           <p className="text-xs text-slate-500">
-            Showing <span className="text-slate-800 font-bold">{startIndex + 1}-{Math.min(startIndex + itemsPerPage, totalItems)}</span> of <span className="text-slate-800 font-bold">{totalItems}</span> tickets
+            Showing <span className="text-slate-800 font-bold">{startIndex + 1}-{Math.min(startIndex + itemsPerPage, totalItems)}</span> of <span className="text-slate-800 font-bold">{totalItems}</span> emails
           </p>
           <div className="h-4 w-px bg-slate-200" />
           <select 

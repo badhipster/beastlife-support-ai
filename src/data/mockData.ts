@@ -1,8 +1,8 @@
-import { Ticket, KBSection, KBChunk, SettingsRule, KPIStats } from '../types';
+import { EmailThread, KBSection, KBChunk, SettingsRule, KPIStats } from '../types';
 
-export const INITIAL_TICKETS: Ticket[] = [
+export const INITIAL_THREADS: EmailThread[] = [
   {
-    id: 'TKT-001',
+    id: 'THR-001',
     senderName: 'Aman Verma',
     senderEmail: 'averma@gmail.com',
     topic: 'Mass gainer smells sour, is it spoiled?',
@@ -33,7 +33,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     triggerReason: 'High frustration sentiment & repeat contact'
   },
   {
-    id: 'TKT-002',
+    id: 'THR-002',
     senderName: 'Priya Sharma',
     senderEmail: 'priya.s@outlook.com',
     topic: 'Refund now or I file a consumer complaint',
@@ -57,7 +57,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     triggerReason: 'Trigger: Legal keyword detected ("consumer complaint", "attorney")'
   },
   {
-    id: 'TKT-003',
+    id: 'THR-003',
     senderName: 'Rahul Khanna',
     senderEmail: 'rahul.k@corp.com',
     topic: 'Payment failed but money was deducted',
@@ -80,7 +80,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     ]
   },
   {
-    id: 'TKT-004',
+    id: 'THR-004',
     senderName: 'Neha Iyer',
     senderEmail: 'neha_m@health.in',
     topic: 'Skin redness and itching after creatine',
@@ -104,7 +104,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     triggerReason: 'Trigger: Health / adverse reaction'
   },
   {
-    id: 'TKT-005',
+    id: 'THR-005',
     senderName: 'Karan Mehta',
     senderEmail: 'kt_lifts@yahoo.com',
     topic: 'Will protein help me lose weight?',
@@ -127,7 +127,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     ]
   },
   {
-    id: 'TKT-006',
+    id: 'THR-006',
     senderName: 'Sana Rao',
     senderEmail: 'sana.r@delivery-test.com',
     topic: 'Marked delivered but I never received it',
@@ -151,7 +151,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     triggerReason: 'Trigger: Angry + 3rd contact'
   },
   {
-    id: 'TKT-007',
+    id: 'THR-007',
     senderName: 'Vikram N',
     senderEmail: 'vikram.n@gmail.com',
     topic: 'Loved the cookies and cream whey!',
@@ -174,7 +174,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     ]
   },
   {
-    id: 'TKT-008',
+    id: 'THR-008',
     senderName: 'Elizabeth Banks',
     senderEmail: 'ebanks@platinum-gym.com',
     topic: 'Bulk gym order, need a GST invoice',
@@ -198,7 +198,7 @@ export const INITIAL_TICKETS: Ticket[] = [
     triggerReason: 'Trigger: VIP Account (Platinum)'
   },
   {
-    id: 'TKT-009',
+    id: 'THR-009',
     senderName: 'Imran S',
     senderEmail: 'imran.s@gmail.com',
     topic: 'Attached my medical report, can I take this?',
@@ -344,14 +344,14 @@ export const INITIAL_RULES: SettingsRule[] = [
   {
     id: 'rule-3',
     title: 'VIP sender',
-    description: 'Prioritize and escalate tickets originating from accounts with "VIP" or "Platinum" enterprise tags.',
+    description: 'Prioritize and escalate cases originating from accounts with "VIP" or "Platinum" enterprise tags.',
     enabled: true,
     icon: 'grade'
   },
   {
     id: 'rule-4',
     title: 'Attachment needs review',
-    description: 'Flag tickets where attachments (images/PDFs) are uploaded but AI OCR confidence drops below 60%.',
+    description: 'Flag emails where attachments (images/PDFs) are uploaded but AI OCR confidence drops below 60%.',
     enabled: false,
     icon: 'attach_file'
   }
