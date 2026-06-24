@@ -25,6 +25,9 @@ export interface EmailThread {
   messages: Message[];
   triggerReason?: string;
   priority?: boolean;
+  vip?: boolean;
+  hasAttachment?: boolean;
+  intent?: string;
 }
 
 export interface KBSection {

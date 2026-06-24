@@ -195,7 +195,8 @@ export const INITIAL_THREADS: EmailThread[] = [
         isCustomer: true
       }
     ],
-    triggerReason: 'Trigger: VIP Account (Platinum)'
+    triggerReason: 'Trigger: VIP Account (Platinum)',
+    vip: true
   },
   {
     id: 'THR-009',
@@ -219,7 +220,8 @@ export const INITIAL_THREADS: EmailThread[] = [
         isCustomer: true
       }
     ],
-    triggerReason: 'Trigger: Attachment for review'
+    triggerReason: 'Trigger: Attachment for review',
+    hasAttachment: true
   }
 ];
 
