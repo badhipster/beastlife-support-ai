@@ -37,6 +37,7 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedThread, setSelectedThread] = useState<EmailThread | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
+  const [gmailNotice, setGmailNotice] = useState<{ ok: boolean; email?: string } | null>(null);
 
   // Load threads from the API (Postgres when configured, else seeded mock data).
   useEffect(() => {
@@ -44,6 +45,18 @@ export default function App() {
       .then((r) => r.json())
       .then((data) => setThreads(data.threads || []))
       .catch((err) => console.error('Failed to load emails:', err));
+  }, []);
+
+  // Show a confirmation when the Gmail OAuth callback redirects back here, then
+  // strip the params from the URL so a refresh doesn't re-show it.
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const gmail = params.get('gmail');
+    if (!gmail) return;
+    setGmailNotice({ ok: gmail === 'connected', email: params.get('email') || undefined });
+    window.history.replaceState({}, '', window.location.pathname);
+    const t = setTimeout(() => setGmailNotice(null), 6000);
+    return () => clearTimeout(t);
   }, []);
 
   // Derive counts dynamically
@@ -106,7 +119,18 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans antialiased text-slate-800">
-      
+
+      {/* Gmail connect confirmation toast (after OAuth redirect) */}
+      {gmailNotice && (
+        <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-xl shadow-lg border text-xs font-semibold flex items-center gap-2 ${
+          gmailNotice.ok ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-rose-600 text-white border-rose-700'
+        }`}>
+          {gmailNotice.ok
+            ? `Gmail connected${gmailNotice.email ? ` — ${gmailNotice.email}` : ''}. New mail will appear within ~60s.`
+            : 'Gmail connection failed. Check the server logs and try again.'}
+        </div>
+      )}
+
       {/* PERSISTENT LEFT SIDEBAR */}
       <Sidebar 
         activeTab={activeTab} 

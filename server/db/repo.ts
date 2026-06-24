@@ -191,7 +191,8 @@ export async function saveAccount(email: string, refreshToken: string | null): P
 
 export async function getAccount(): Promise<Account | null> {
   if (!isDbConfigured()) return null;
-  const rows = await query<Account>('select email, refresh_token from accounts order by id limit 1');
+  // Most recently connected inbox wins, so reconnecting a new account switches to it.
+  const rows = await query<Account>('select email, refresh_token from accounts order by updated_at desc, id desc limit 1');
   return rows[0] || null;
 }
 

@@ -237,10 +237,12 @@ app.get('/api/auth/google/callback', async (req, res) => {
     const code = req.query.code as string;
     if (!code) return res.status(400).send('Missing authorization code.');
     const email = await handleCallback(code);
-    res.send(`<p>Gmail connected for <b>${email}</b>. You can close this tab and return to BeastLife Support.</p>`);
+    const base = process.env.APP_URL || '';
+    res.redirect(`${base}/?gmail=connected&email=${encodeURIComponent(email)}`);
   } catch (error: any) {
     console.error('OAuth callback error:', error);
-    res.status(500).send('OAuth failed. Check the server logs.');
+    const base = process.env.APP_URL || '';
+    res.redirect(`${base}/?gmail=error`);
   }
 });
 
