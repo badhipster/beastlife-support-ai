@@ -196,26 +196,25 @@ export default function OnboardingTab({ onboardingCompleted, setOnboardingComple
         </div>
       </div>
 
-      {/* RIGHT COLUMN: REASSURING COMPLIANCE DOCUMENTATION */}
+      {/* RIGHT COLUMN: HOW YOUR DATA IS HANDLED */}
       <div className="space-y-6">
-        {/* Compliance checklist */}
         <div className="bg-[#1E293B] border border-slate-700 text-slate-200 rounded-2xl p-5 shadow-lg space-y-4">
-          <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">Enterprise-grade Compliance</h4>
+          <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider">How your data is handled</h4>
           <p className="text-xs text-slate-300 leading-relaxed">
-            The BeastLife Support integration process fully adheres to global data safeguards, ensuring customer transcripts and internal formulation files are encrypted.
+            OAuth 2.0, encrypted in transit. You approve every reply before it sends.
           </p>
           <div className="space-y-2 text-xs font-medium border-t border-slate-800 pt-3">
             <p className="text-slate-200 flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full block animate-pulse" />
-              SOC2 Type II Certified TLS tunnels.
+              Gmail OAuth 2.0 with the scopes you grant. No mailbox access without your sign-in.
             </p>
             <p className="text-slate-200 flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full block animate-pulse" />
-              Restricted server-to-server TLS routing on Port 3000.
+              Transcripts and drafts are encrypted in transit between your inbox and this app.
             </p>
             <p className="text-slate-200 flex items-center gap-2">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full block animate-pulse" />
-              HIPAA compliant security for private allergy logs.
+              No auto-send. Every reply waits in the Drafts queue until you approve it.
             </p>
           </div>
         </div>
