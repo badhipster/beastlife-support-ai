@@ -80,7 +80,7 @@ Draft a professional email response. Address them politely, answer their concern
 
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: promptUser,
         config: {
           systemInstruction: systemPrompt,
@@ -189,7 +189,7 @@ Respond with a JSON array return format containing the top 3 relevant chunks sor
 
     try {
       const response = await ai.models.generateContent({
-        model: 'gemini-3.5-flash',
+        model: 'gemini-2.5-flash',
         contents: promptRAG,
         config: {
           responseMimeType: 'application/json',
