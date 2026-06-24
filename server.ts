@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { createServer as createViteServer } from 'vite';
 import { generateText } from './server/llm';
 import { retrieveKB, RetrievedChunk } from './server/kb';
+import { evaluateEscalation } from './server/escalation';
 
 dotenv.config();
 
@@ -128,6 +129,91 @@ app.post('/api/retrieve-kb', async (req, res) => {
   } catch (error: any) {
     console.error('KB retrieval error:', error);
     res.status(500).json({ error: error.message || 'Error doing RAG retrieval' });
+  }
+});
+
+// 3. API: Triage an email — classify (category + sentiment + intent) then run
+// the deterministic escalation engine. One Gemini call + pure rules.
+const CATEGORIES = ['Legal', 'Product Issue', 'Delivery', 'Return/Refund', 'Billing', 'General', 'Feedback', 'Spam'];
+const SENTIMENTS = ['Angry', 'Frustrated', 'Sad', 'Neutral', 'Happy'];
+
+interface Classification {
+  categories: string[];
+  sentiment: string;
+  intent: string;
+}
+
+// Deterministic fallback when the LLM is unavailable (no key / quota).
+function keywordClassify(subject: string, message: string): Classification {
+  const t = `${subject} ${message}`.toLowerCase();
+  const has = (kws: string[]) => kws.some((k) => t.includes(k));
+  let category = 'General';
+  if (has(['lawsuit', 'consumer complaint', 'attorney', 'legal', 'chargeback'])) category = 'Legal';
+  else if (has(['refund', 'return', 'money back'])) category = 'Return/Refund';
+  else if (has(['delivered', 'delivery', 'tracking', 'courier', 'shipment'])) category = 'Delivery';
+  else if (has(['payment', 'invoice', 'gst', 'emi', 'deducted', 'charged'])) category = 'Billing';
+  else if (has(['damaged', 'spoiled', 'sour', 'lumps', 'rash', 'itching', 'reaction', 'expired', 'wrong'])) category = 'Product Issue';
+  else if (has(['love', 'loved', 'great', 'awesome', 'thank you', 'delicious'])) category = 'Feedback';
+  let sentiment = 'Neutral';
+  if (has(['furious', 'unacceptable', 'consumer complaint', 'attorney', 'immediately'])) sentiment = 'Angry';
+  else if (has(['frustrated', 'still waiting', 'again', 'disappointed'])) sentiment = 'Frustrated';
+  else if (has(['sad', 'worried', 'sick', 'rash', 'itching', 'hives'])) sentiment = 'Sad';
+  else if (has(['love', 'loved', 'great', 'awesome', 'delicious', 'kudos'])) sentiment = 'Happy';
+  return { categories: [category], sentiment, intent: 'Unclassified (offline)' };
+}
+
+function parseClassification(raw: string): Classification {
+  const parsed = JSON.parse(raw);
+  const categories = Array.isArray(parsed.categories)
+    ? parsed.categories.filter((c: string) => CATEGORIES.includes(c))
+    : [];
+  return {
+    categories: categories.length > 0 ? categories : ['General'],
+    sentiment: SENTIMENTS.includes(parsed.sentiment) ? parsed.sentiment : 'Neutral',
+    intent: typeof parsed.intent === 'string' ? parsed.intent : '',
+  };
+}
+
+app.post('/api/triage', async (req, res) => {
+  try {
+    const { subject, message, contactCount, vip, hasAttachment } = req.body;
+    if (!message) {
+      return res.status(400).json({ error: 'message is required' });
+    }
+
+    const system = `You classify inbound customer support emails for an Indian sports-nutrition brand. Return ONLY JSON.
+- categories: array of one or more from exactly this set: ${JSON.stringify(CATEGORIES)}. Use multiple only when genuinely ambiguous.
+- sentiment: exactly one of ${JSON.stringify(SENTIMENTS)}.
+- intent: a short phrase (max 6 words) for what the customer wants, e.g. "request replacement", "track order", "report adverse reaction".`;
+    const prompt = `Subject: "${subject || ''}"
+Body: "${message}"
+Return JSON: { "categories": [...], "sentiment": "...", "intent": "..." }`;
+
+    let classification: Classification;
+    let simulated = false;
+    try {
+      const raw = await generateText({ system, prompt, temperature: 0.1, responseMimeType: 'application/json' });
+      classification = parseClassification(raw);
+    } catch (apiError) {
+      console.warn('Classification failed. Falling back to keyword classifier.', apiError);
+      classification = keywordClassify(subject || '', message);
+      simulated = true;
+    }
+
+    const escalation = evaluateEscalation({
+      subject,
+      message,
+      categories: classification.categories,
+      sentiment: classification.sentiment,
+      contactCount,
+      vip,
+      hasAttachment,
+    });
+
+    res.json({ ...classification, escalation, simulated });
+  } catch (error: any) {
+    console.error('Triage error:', error);
+    res.status(500).json({ error: error.message || 'Error triaging email' });
   }
 });
 

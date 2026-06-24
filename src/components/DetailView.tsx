@@ -31,14 +31,67 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
   const [isLocalSimulated, setIsLocalSimulated] = useState<boolean>(false);
   const [draftKbRefs, setDraftKbRefs] = useState<{ id: string; sourceId: string; title: string; relevanceScore: number }[]>([]);
   const [draftGrounded, setDraftGrounded] = useState<boolean | null>(null);
+  const [isTriaging, setIsTriaging] = useState<boolean>(false);
+  const [triageNote, setTriageNote] = useState<string>('');
 
   useEffect(() => {
     setDraftText('');
     setDraftKbRefs([]);
     setDraftGrounded(null);
+    setTriageNote('');
     setKbQuery(thread.topic);
     searchKB(thread.topic);
+    // Auto-run triage only for an unclassified thread (e.g. future ingested
+    // mail). Seeded threads already carry a category, so this stays dormant
+    // and never spends quota just from browsing.
+    if (!thread.category) {
+      runTriage();
+    }
   }, [thread]);
+
+  // Classify (category + sentiment + intent) and run the escalation engine,
+  // then lift the result onto the thread. The human still approves any reply.
+  const runTriage = async () => {
+    setIsTriaging(true);
+    try {
+      const response = await fetch('/api/triage', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          subject: thread.topic,
+          message: thread.messages.map((m) => m.content).join('\n'),
+          contactCount: thread.contactCount,
+          vip: thread.vip,
+          hasAttachment: thread.hasAttachment,
+        }),
+      });
+      const data = await response.json();
+      if (response.ok) {
+        const escalated = !!data.escalation?.escalated;
+        onUpdateThread({
+          ...thread,
+          category: (data.categories && data.categories[0]) || thread.category,
+          sentiment: data.sentiment || thread.sentiment,
+          intent: data.intent || thread.intent,
+          ...(escalated
+            ? { status: 'Escalated', draftStatus: 'Needs action', triggerReason: data.escalation.summary }
+            : {}),
+        });
+        const cats = (data.categories || []).join(', ');
+        setTriageNote(
+          `${data.simulated ? 'Offline triage' : 'AI triage'}: ${cats} · ${data.sentiment}` +
+            (data.intent ? ` · ${data.intent}` : '') +
+            (escalated ? ` · Escalated (${data.escalation.summary})` : '')
+        );
+      } else {
+        console.error('Error triaging thread', data);
+      }
+    } catch (err) {
+      console.error('Triage failed:', err);
+    } finally {
+      setIsTriaging(false);
+    }
+  };
 
   // AI draft call using server route
   const generateAIDraft = async () => {
@@ -181,7 +234,16 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
           </div>
 
           <div className="flex gap-2.5">
-            <button 
+            <button
+              onClick={runTriage}
+              disabled={isTriaging}
+              className="px-3 py-1.5 border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-xl transition-all disabled:opacity-40 flex items-center gap-1.5 cursor-pointer"
+              title="Classify category + sentiment + intent and evaluate escalation rules"
+            >
+              <Tag className="w-3.5 h-3.5" />
+              {isTriaging ? 'Triaging...' : 'Re-run AI triage'}
+            </button>
+            <button
               onClick={handleEscalate}
               disabled={thread.status === 'Escalated'}
               className="px-3 py-1.5 border border-rose-200 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-xl transition-all disabled:opacity-30 flex items-center gap-1.5 cursor-pointer"
@@ -207,6 +269,12 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
           <p className="text-xs text-slate-500 italic mt-1 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
             &ldquo;{thread.brief}&rdquo;
           </p>
+          {triageNote && (
+            <p className="text-[10px] font-semibold text-slate-600 mt-2 flex items-center gap-1.5">
+              <Tag className="w-3 h-3 text-emerald-600 shrink-0" />
+              {triageNote}
+            </p>
+          )}
         </div>
 
         {/* Message Thread Scroll Area */}
