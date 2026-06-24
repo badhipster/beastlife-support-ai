@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { embedText } from './llm';
+import { searchKbChunks, kbChunkCount } from './db/repo';
 
 export interface KBChunk {
   id: string;
@@ -93,12 +94,29 @@ function keywordRetrieve(query: string, k: number): RetrievedChunk[] {
  * ranking the index by cosine similarity. Falls back to keyword overlap (and
  * sets simulated:true) when embeddings are unavailable (no key / quota).
  */
-export async function retrieveKB(query: string, k = 4): Promise<RetrieveResult> {
-  if (INDEX.length === 0) {
-    return { chunks: [], simulated: true };
+// Has the KB been loaded into Postgres? Checked once and cached.
+let pgvectorReady: boolean | null = null;
+async function usePgvector(): Promise<boolean> {
+  if (pgvectorReady === null) {
+    try {
+      pgvectorReady = (await kbChunkCount()) > 0;
+    } catch {
+      pgvectorReady = false;
+    }
   }
+  return pgvectorReady;
+}
+
+export async function retrieveKB(query: string, k = 4): Promise<RetrieveResult> {
   try {
     const qvec = await embedText(query);
+    // Prefer pgvector when the KB is seeded into Postgres; else use the
+    // in-memory index. Same cosine ranking either way.
+    if (await usePgvector()) {
+      const chunks = await searchKbChunks(qvec, k);
+      if (chunks.length > 0) return { chunks, simulated: false };
+    }
+    if (INDEX.length === 0) return { chunks: [], simulated: true };
     const scored = INDEX.map((e) => toRetrieved(e, cosine(qvec, e.embedding))).sort(
       (a, b) => b.relevanceScore - a.relevanceScore
     );

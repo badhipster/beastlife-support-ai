@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import InboxTab from './components/InboxTab';
@@ -9,11 +9,27 @@ import KnowledgeBaseTab from './components/KnowledgeBaseTab';
 import SettingsTab from './components/SettingsTab';
 import OnboardingTab from './components/OnboardingTab';
 
-import { INITIAL_THREADS, INITIAL_RULES } from './data/mockData';
+import { INITIAL_RULES } from './data/mockData';
 import { EmailThread, SettingsRule } from './types';
 
+// Persist a thread change to the backend (no-op server-side when no DB).
+function persistThread(id: string, patch: Partial<EmailThread>) {
+  fetch(`/api/emails/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      category: patch.category,
+      sentiment: patch.sentiment,
+      intent: patch.intent,
+      status: patch.status,
+      draftStatus: patch.draftStatus,
+      triggerReason: patch.triggerReason,
+    }),
+  }).catch((err) => console.error('Failed to persist thread update:', err));
+}
+
 export default function App() {
-  const [threads, setThreads] = useState<EmailThread[]>(INITIAL_THREADS);
+  const [threads, setThreads] = useState<EmailThread[]>([]);
   const [rules, setRules] = useState<SettingsRule[]>(INITIAL_RULES);
   const [selectedAgent, setSelectedAgent] = useState<string>('Alex Carter');
   const [activeTab, setActiveTab] = useState<string>('inbox');
@@ -21,6 +37,14 @@ export default function App() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedThread, setSelectedThread] = useState<EmailThread | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
+
+  // Load threads from the API (Postgres when configured, else seeded mock data).
+  useEffect(() => {
+    fetch('/api/emails')
+      .then((r) => r.json())
+      .then((data) => setThreads(data.threads || []))
+      .catch((err) => console.error('Failed to load emails:', err));
+  }, []);
 
   // Derive counts dynamically
   const openThreadsCount = threads.filter(t => t.status === 'Open').length;
@@ -61,6 +85,7 @@ export default function App() {
       }
       return t;
     }));
+    persistThread(threadId, { status: 'Open', triggerReason: 'Claimed by ' + selectedAgent });
     alert(`Case ${threadId} has been added to your queue!`);
   };
 
@@ -76,6 +101,7 @@ export default function App() {
     if (selectedThread && selectedThread.id === updatedThread.id) {
       setSelectedThread(updatedThread);
     }
+    persistThread(updatedThread.id, updatedThread);
   };
 
   return (

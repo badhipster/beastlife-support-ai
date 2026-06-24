@@ -5,6 +5,7 @@ import { createServer as createViteServer } from 'vite';
 import { generateText } from './server/llm';
 import { retrieveKB, RetrievedChunk } from './server/kb';
 import { evaluateEscalation } from './server/escalation';
+import { listThreads, getThread, updateThread, listRules, logEvent } from './server/db/repo';
 
 dotenv.config();
 
@@ -214,6 +215,64 @@ Return JSON: { "categories": [...], "sentiment": "...", "intent": "..." }`;
   } catch (error: any) {
     console.error('Triage error:', error);
     res.status(500).json({ error: error.message || 'Error triaging email' });
+  }
+});
+
+// 4. API: persisted email threads, escalations, rules (System Design section 8)
+app.get('/api/emails', async (req, res) => {
+  try {
+    const { status, category } = req.query;
+    let threads = await listThreads();
+    if (status) threads = threads.filter((t) => t.status === status);
+    if (category) threads = threads.filter((t) => t.category === category);
+    res.json({ threads });
+  } catch (error: any) {
+    console.error('List emails error:', error);
+    res.status(500).json({ error: error.message || 'Error listing emails' });
+  }
+});
+
+app.get('/api/emails/:id', async (req, res) => {
+  try {
+    const thread = await getThread(req.params.id);
+    if (!thread) return res.status(404).json({ error: 'Not found' });
+    res.json({ thread });
+  } catch (error: any) {
+    console.error('Get email error:', error);
+    res.status(500).json({ error: error.message || 'Error fetching email' });
+  }
+});
+
+// Persist read-model changes (triage result, manual escalate). Never sends.
+app.patch('/api/emails/:id', async (req, res) => {
+  try {
+    const { category, sentiment, intent, status, draftStatus, triggerReason } = req.body;
+    const thread = await updateThread(req.params.id, { category, sentiment, intent, status, draftStatus, triggerReason });
+    if (!thread) return res.status(404).json({ error: 'Not found' });
+    if (status === 'Escalated') await logEvent('escalated', thread.id);
+    res.json({ thread });
+  } catch (error: any) {
+    console.error('Update email error:', error);
+    res.status(500).json({ error: error.message || 'Error updating email' });
+  }
+});
+
+app.get('/api/escalations', async (_req, res) => {
+  try {
+    const threads = await listThreads();
+    res.json({ threads: threads.filter((t) => t.status === 'Escalated') });
+  } catch (error: any) {
+    console.error('List escalations error:', error);
+    res.status(500).json({ error: error.message || 'Error listing escalations' });
+  }
+});
+
+app.get('/api/rules', async (_req, res) => {
+  try {
+    res.json({ rules: await listRules() });
+  } catch (error: any) {
+    console.error('List rules error:', error);
+    res.status(500).json({ error: error.message || 'Error listing rules' });
   }
 });
 
