@@ -11,7 +11,8 @@
     "check:escalation": "tsx scripts/check-escalation.ts",
     "ingest-kb": "tsx scripts/ingest-kb.ts",
     "db:migrate": "tsx server/db/migrate.ts",
-    "db:seed": "tsx server/db/seed.ts"
+    "db:seed": "tsx server/db/seed.ts",
+    "db:clear-inbox": "tsx server/db/clear-inbox.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",
