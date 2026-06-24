@@ -351,7 +351,7 @@ export const INITIAL_RULES: SettingsRule[] = [
   {
     id: 'rule-4',
     title: 'Attachment needs review',
-    description: 'Flag emails where attachments (images/PDFs) are uploaded but AI OCR confidence drops below 60%.',
+    description: 'Flag emails with attachments (images, PDFs) for human review before drafting a reply.',
     enabled: false,
     icon: 'attach_file'
   }

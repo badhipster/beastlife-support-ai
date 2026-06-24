@@ -32,6 +32,7 @@ export default function SettingsTab({
   const [supportEmail, setSupportEmail] = useState<string>('leads@beastlife.com');
   const [slackWebhook, setSlackWebhook] = useState<string>('https://hooks.slack.com/services/T0123/B4567/BLG89');
   const [autoApproveQuality, setAutoApproveQuality] = useState<boolean>(true);
+  const [requireEvidenceBeforeEscalation, setRequireEvidenceBeforeEscalation] = useState<boolean>(true);
 
   // Toggle rule enabled state
   const handleToggleRule = (ruleId: string) => {
@@ -131,7 +132,6 @@ export default function SettingsTab({
                 When enabled, AI automatically prepares draft emails but forbids transmission until a human reviews and approves. Disabling this flags standard Q&A queries for direct autoresponse.
               </p>
             </div>
-            {/* Toggle checkbox */}
             <button
               onClick={() => setAutoApproveQuality(!autoApproveQuality)}
               className={`w-10 h-6 rounded-full p-1 transition-all relative shrink-0 cursor-pointer ${
@@ -140,6 +140,25 @@ export default function SettingsTab({
             >
               <div className={`w-4 h-4 bg-white rounded-full shadow transition-all ${
                 autoApproveQuality ? 'translate-x-4' : 'translate-x-0'
+              }`} />
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+            <div className="space-y-1.5 pr-4 flex-1">
+              <h5 className="text-xs font-bold text-slate-800">Quality complaint requires evidence before escalation</h5>
+              <p className="text-xs text-slate-500 leading-snug">
+                For quality complaints (damaged, wrong item, missing, expired), the draft must request a photo or video and the batch number before the case can be escalated or marked resolved.
+              </p>
+            </div>
+            <button
+              onClick={() => setRequireEvidenceBeforeEscalation(!requireEvidenceBeforeEscalation)}
+              className={`w-10 h-6 rounded-full p-1 transition-all relative shrink-0 cursor-pointer ${
+                requireEvidenceBeforeEscalation ? 'bg-emerald-600' : 'bg-slate-300'
+              }`}
+            >
+              <div className={`w-4 h-4 bg-white rounded-full shadow transition-all ${
+                requireEvidenceBeforeEscalation ? 'translate-x-4' : 'translate-x-0'
               }`} />
             </button>
           </div>
