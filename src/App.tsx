@@ -104,7 +104,7 @@ export default function App() {
           setSearchQuery={setSearchQuery}
           subTab={subTab}
           setSubTab={setSubTab}
-          openaiModel="Gemini 3.5 Flash"
+          openaiModel="Gemini 2.5 Flash"
         />
 
         {/* MAIN VISUAL WORKSPACE PANEL */}

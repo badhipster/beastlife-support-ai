@@ -18,7 +18,7 @@ export default function Header({
   setSearchQuery,
   subTab,
   setSubTab,
-  openaiModel = "Gemini 3.5 Flash"
+  openaiModel = "Gemini 2.5 Flash"
 }: HeaderProps) {
   return (
     <header className="h-16 flex justify-between items-center px-8 border-b border-slate-200 bg-white sticky top-0 z-40 shrink-0">
