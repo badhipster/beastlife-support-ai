@@ -30,17 +30,9 @@ export default function DetailView({ ticket, onBack, onUpdateTicket }: DetailVie
   const [isSearchingKb, setIsSearchingKb] = useState<boolean>(false);
   const [isLocalSimulated, setIsLocalSimulated] = useState<boolean>(false);
   
-  // Set draft placeholder or prepare seed
   useEffect(() => {
-    if (ticket.draftStatus === 'Draft ready') {
-      const initials = ticket.senderName.split(' ')[0];
-      setDraftText(`Dear ${ticket.senderName},\n\nThank you for reaching out to BeastLife. We are deeply sorry to hear about your experience with ${ticket.topic || 'the product'}.\n\nConcerning the issue, please supply the batch code stamped on the bottom of the tub. We can immediately process a complementary brand-new replacement tub once logged.\n\nWarm regards,\nBeastLife Support Agent`);
-    } else {
-      setDraftText('');
-    }
-    // Set kb query default based on topic
+    setDraftText('');
     setKbQuery(ticket.topic);
-    // Auto query KB
     searchKB(ticket.topic);
   }, [ticket]);
 
