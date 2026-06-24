@@ -2,6 +2,11 @@ import { GoogleGenAI } from '@google/genai';
 
 // Single provider seam for the app. Swap this module to change LLM vendor.
 export const GEN_MODEL = 'gemini-2.5-flash';
+// gemini-embedding-001 is what this API key/version exposes for embedContent
+// (text-embedding-004 returns 404 on v1beta here). 768 dims keeps the index
+// small and cosine fast; query and chunk embeddings must share this dim.
+export const EMBED_MODEL = 'gemini-embedding-001';
+export const EMBED_DIM = 768;
 
 // Lazy init so a missing/placeholder key never crashes the server; callers
 // fall back to simulated output when this returns null.
@@ -55,4 +60,25 @@ export async function generateText({ system, prompt, temperature = 0.7, response
     },
   });
   return response.text || '';
+}
+
+/**
+ * Embed a single piece of text. Throws if the client is unconfigured or the
+ * API call fails. Used for KB ingestion (build time) and query retrieval.
+ */
+export async function embedText(text: string): Promise<number[]> {
+  const ai = getGeminiClient();
+  if (!ai) {
+    throw new Error('LLM not configured');
+  }
+  const response = await ai.models.embedContent({
+    model: EMBED_MODEL,
+    contents: text,
+    config: { outputDimensionality: EMBED_DIM },
+  });
+  const values = response.embeddings?.[0]?.values;
+  if (!values || values.length === 0) {
+    throw new Error('No embedding returned');
+  }
+  return values;
 }
