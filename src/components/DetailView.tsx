@@ -108,6 +108,7 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
           senderName: thread.senderName,
           category: thread.category,
           sentiment: thread.sentiment,
+          threadId: thread.id,
         }),
       });
 
@@ -150,11 +151,23 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
     }
   };
 
-  // Actions
-  const handleSendDraft = () => {
+  // Actions — approve-and-send (the only path that sends mail; human-gated)
+  const handleSendDraft = async () => {
     if (!draftText.trim()) return;
 
-    // Create fresh reply message
+    let sent = false;
+    try {
+      const res = await fetch(`/api/emails/${thread.id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: draftText }),
+      });
+      const data = await res.json();
+      sent = !!data.sent;
+    } catch (err) {
+      console.error('Approve/send failed:', err);
+    }
+
     const newReply: Message = {
       id: `rep-${Date.now()}`,
       sender: 'BeastLife Support AI',
@@ -172,7 +185,9 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
 
     onUpdateThread(updatedThread);
     setDraftText('');
-    alert(`Response successfully transmitted to ${thread.senderEmail}!`);
+    alert(sent
+      ? `Reply sent to ${thread.senderEmail} in Gmail and logged.`
+      : `Draft approved and logged. (Live Gmail send applies to connected-inbox threads.)`);
     onBack();
   };
 
