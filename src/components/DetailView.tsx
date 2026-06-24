@@ -29,9 +29,13 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
   const [kbChunks, setKbChunks] = useState<KBChunk[]>([]);
   const [isSearchingKb, setIsSearchingKb] = useState<boolean>(false);
   const [isLocalSimulated, setIsLocalSimulated] = useState<boolean>(false);
-  
+  const [draftKbRefs, setDraftKbRefs] = useState<{ id: string; sourceId: string; title: string; relevanceScore: number }[]>([]);
+  const [draftGrounded, setDraftGrounded] = useState<boolean | null>(null);
+
   useEffect(() => {
     setDraftText('');
+    setDraftKbRefs([]);
+    setDraftGrounded(null);
     setKbQuery(thread.topic);
     searchKB(thread.topic);
   }, [thread]);
@@ -56,6 +60,8 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
       if (response.ok) {
         setDraftText(data.draft);
         setIsLocalSimulated(!!data.simulated);
+        setDraftKbRefs(data.kbRefs || []);
+        setDraftGrounded(typeof data.grounded === 'boolean' ? data.grounded : null);
       } else {
         console.error('Error generating draft from server', data);
       }
@@ -246,8 +252,8 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
               Active Draft Area {isLocalSimulated && <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-tight">(Simulated offline)</span>}
             </span>
             <div className="flex gap-2">
-              <button 
-                onClick={() => setDraftText('')} 
+              <button
+                onClick={() => { setDraftText(''); setDraftKbRefs([]); setDraftGrounded(null); }}
                 className="text-[10px] font-bold text-slate-400 hover:text-rose-500 py-1 px-2 hover:bg-rose-50 rounded-lg Transition-all"
                 title="Discard draft"
               >
@@ -255,6 +261,24 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
               </button>
             </div>
           </div>
+
+          {/* Grounding indicator: shows what KB sources the draft used, or that it asked to clarify */}
+          {draftGrounded !== null && (
+            draftGrounded ? (
+              <div className="mb-2 flex items-start gap-1.5 text-[10px] text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg px-2.5 py-1.5">
+                <BookOpen className="w-3 h-3 mt-0.5 shrink-0" />
+                <span>
+                  <span className="font-bold uppercase tracking-tight">Grounded in {draftKbRefs.length} KB source{draftKbRefs.length === 1 ? '' : 's'}:</span>{' '}
+                  {draftKbRefs.map((r) => r.title).join(', ')}
+                </span>
+              </div>
+            ) : (
+              <div className="mb-2 flex items-start gap-1.5 text-[10px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-2.5 py-1.5">
+                <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0" />
+                <span className="font-medium">No relevant KB match found. Draft asks the customer to clarify rather than inventing an answer.</span>
+              </div>
+            )
+          )}
 
           {/* Draft text Area */}
           <textarea
