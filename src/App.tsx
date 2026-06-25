@@ -8,9 +8,16 @@ import AnalyticsTab from './components/AnalyticsTab';
 import KnowledgeBaseTab from './components/KnowledgeBaseTab';
 import SettingsTab from './components/SettingsTab';
 import OnboardingTab from './components/OnboardingTab';
+import OnboardingFlow from './components/OnboardingFlow';
 
 import { INITIAL_RULES } from './data/mockData';
-import { EmailThread, SettingsRule } from './types';
+import { EmailThread, SettingsRule, Role } from './types';
+
+// Which tabs each role can access (admin = everything; agent = working surface).
+const ROLE_TABS: Record<Role, string[]> = {
+  admin: ['inbox', 'escalations', 'analytics', 'kb', 'onboarding', 'settings'],
+  agent: ['inbox', 'escalations', 'analytics'],
+};
 
 // Persist a thread change to the backend (no-op server-side when no DB).
 function persistThread(id: string, patch: Partial<EmailThread>) {
@@ -38,6 +45,24 @@ export default function App() {
   const [selectedThread, setSelectedThread] = useState<EmailThread | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
   const [gmailNotice, setGmailNotice] = useState<{ ok: boolean; email?: string } | null>(null);
+  const [role, setRole] = useState<Role | null>(() => localStorage.getItem('bl_role') as Role | null);
+
+  // Set/switch the active role (persisted), and reset to a safe tab.
+  const persistRole = (r: Role) => {
+    localStorage.setItem('bl_role', r);
+    setRole(r);
+    setActiveTab('inbox');
+    setSelectedThread(null);
+  };
+
+  // If the current role can't access the open tab (e.g. after a role switch),
+  // fall back to the inbox.
+  useEffect(() => {
+    if (role && !ROLE_TABS[role].includes(activeTab)) {
+      setActiveTab('inbox');
+      setSelectedThread(null);
+    }
+  }, [role, activeTab]);
 
   // Load threads from the API (Postgres when configured, else seeded mock data).
   useEffect(() => {
@@ -117,6 +142,11 @@ export default function App() {
     persistThread(updatedThread.id, updatedThread);
   };
 
+  // First-run gate: no role chosen yet -> onboarding step.
+  if (!role) {
+    return <OnboardingFlow persistRole={persistRole} />;
+  }
+
   return (
     <div className="min-h-screen bg-[#F8FAFC] flex font-sans antialiased text-slate-800">
 
@@ -132,15 +162,18 @@ export default function App() {
       )}
 
       {/* PERSISTENT LEFT SIDEBAR */}
-      <Sidebar 
-        activeTab={activeTab} 
+      <Sidebar
+        activeTab={activeTab}
         setActiveTab={(tab) => {
-          setActiveTab(tab); 
+          setActiveTab(tab);
           setSelectedThread(null); // Clear selected drawer context when shifting tabs
-        }} 
+        }}
         openThreadsCount={openThreadsCount}
         escalatedCount={escalatedCount}
         onboardingCompleted={onboardingCompleted}
+        allowedTabs={ROLE_TABS[role]}
+        role={role}
+        onSwitchRole={persistRole}
       />
 
       {/* PRIMARY DESKTOP APP FLOW CONTAINER */}

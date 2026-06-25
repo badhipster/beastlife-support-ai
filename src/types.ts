@@ -1,6 +1,9 @@
 export type Sentiment = 'Frustrated' | 'Angry' | 'Neutral' | 'Sad' | 'Happy';
 export type EmailStatus = 'Open' | 'Replied' | 'Escalated' | 'In Queue' | 'Closed';
 
+// App access roles. 'agent' works the queue; 'admin' (CX lead) also configures.
+export type Role = 'agent' | 'admin';
+
 export interface Message {
   id: string;
   sender: string;
