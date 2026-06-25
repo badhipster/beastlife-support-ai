@@ -30,6 +30,21 @@ export default function EscalationTab({ threads, onSelectThread, onClaimThread }
     return <Zap className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />;
   };
 
+  // Clean empty state when nothing is escalated (no stale reference cards).
+  if (escalatedThreads.length === 0) {
+    return (
+      <div className="flex-1 flex flex-col items-center justify-center bg-[#F6F8FC] text-center p-6">
+        <div className="w-14 h-14 rounded-lg bg-green-50 flex items-center justify-center text-green-600 mb-4">
+          <ShieldCheck className="w-7 h-7" />
+        </div>
+        <h3 className="text-base font-semibold text-slate-800">No escalations right now</h3>
+        <p className="text-sm text-slate-500 mt-1 max-w-sm leading-relaxed">
+          When an email trips a guardrail — legal, health/adverse reaction, angry repeat contact, VIP, an attachment, or a quality complaint missing evidence — it appears here for human review.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1.8fr_1fr] p-6 gap-6 bg-[#F6F8FC] overflow-y-auto">
       {/* List section */}

@@ -79,12 +79,17 @@ export default function App() {
     }
   }, [role, activeTab]);
 
-  // Load threads from the API (Postgres when configured, else seeded mock data).
+  // Load threads from the API, and poll so newly ingested mail appears live
+  // (the Gmail poller ingests server-side every ~60s).
   useEffect(() => {
-    fetch('/api/emails')
-      .then((r) => r.json())
-      .then((data) => setThreads(data.threads || []))
-      .catch((err) => console.error('Failed to load emails:', err));
+    const load = () =>
+      fetch('/api/emails')
+        .then((r) => r.json())
+        .then((data) => setThreads(data.threads || []))
+        .catch((err) => console.error('Failed to load emails:', err));
+    load();
+    const id = setInterval(load, 20000);
+    return () => clearInterval(id);
   }, []);
 
   // Show a confirmation when the Gmail OAuth callback redirects back here, then
