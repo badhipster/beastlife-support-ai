@@ -20,7 +20,7 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
 
 // 1. API: KB-grounded draft reply (PRD 6.4 + section 7 guardrails)
 app.post('/api/generate-draft', async (req, res) => {

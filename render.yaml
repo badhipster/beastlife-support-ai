@@ -1,0 +1,28 @@
+# Render blueprint for BeastLife Support AI.
+# A single persistent Node web service that serves the built SPA + the API and
+# runs the Gmail poller. Secrets are set in the Render dashboard (sync: false),
+# never committed. After the first deploy, set APP_URL to the live Render URL and
+# add ${APP_URL}/api/auth/google/callback as an authorized redirect URI in GCP.
+services:
+  - type: web
+    name: beastlife-support-ai
+    runtime: node
+    plan: free
+    # --include=dev forces vite/esbuild/tsx to install even under NODE_ENV=production,
+    # otherwise the build step has no build tools.
+    buildCommand: npm install --include=dev && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/gmail/status
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: APP_URL
+        sync: false
