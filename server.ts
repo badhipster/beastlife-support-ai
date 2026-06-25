@@ -7,7 +7,7 @@ import { evaluateEscalation } from './server/escalation';
 import { classifyEmail, generateGroundedDraft } from './server/pipeline';
 import {
   listThreads, getThread, updateThread, listRules, logEvent,
-  saveDraft, latestDraft, latestDraftFull, markReplied, getSendContext,
+  saveDraft, latestDraft, latestDraftFull, markReplied, getSendContext, claimThread,
 } from './server/db/repo';
 import { isGmailConfigured, isConnected, getAuthUrl, handleCallback, sendReply } from './server/gmail';
 import { startPoller } from './server/poller';
@@ -157,6 +157,20 @@ app.post('/api/emails/:id/approve', async (req, res) => {
   } catch (error: any) {
     console.error('Approve/send error:', error);
     res.status(500).json({ error: error.message || 'Error sending reply' });
+  }
+});
+
+// Claim a thread -> assign it to the signed-in agent (drives "My Queue").
+app.post('/api/emails/:id/claim', async (req, res) => {
+  try {
+    const user = await getUserFromReq(req);
+    if (!user) return res.status(401).json({ error: 'Not authenticated' });
+    const thread = await claimThread(req.params.id, user.email);
+    if (!thread) return res.status(404).json({ error: 'Not found' });
+    res.json({ thread });
+  } catch (error: any) {
+    console.error('Claim error:', error);
+    res.status(500).json({ error: error.message || 'Error claiming email' });
   }
 });
 

@@ -1,294 +1,141 @@
 import React, { useState } from 'react';
-import { EmailThread, Sentiment, EmailStatus } from '../types';
-import { Sparkles, ArrowRight, Check, AlertCircle, CircleDot } from 'lucide-react';
+import { EmailThread, Sentiment } from '../types';
+import { Sparkles, CircleDot, AlertTriangle } from 'lucide-react';
 
 interface InboxTabProps {
   threads: EmailThread[];
   onSelectThread: (thread: EmailThread) => void;
   searchQuery: string;
+  currentEmail?: string;
 }
 
-export default function InboxTab({ threads, onSelectThread, searchQuery }: InboxTabProps) {
+export default function InboxTab({ threads, onSelectThread, searchQuery, currentEmail }: InboxTabProps) {
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [selectedSentiment, setSelectedSentiment] = useState<string>('All');
   const [selectedStatus, setSelectedStatus] = useState<string>('All');
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage, setItemsPerPage] = useState<number>(10);
 
-  // Filter labels
-  const categories = ['All', 'Product Issue', 'Billing', 'Legal', 'General', 'Delivery', 'Feedback'];
+  const categories = ['All', 'Product Issue', 'Billing', 'Legal', 'Return/Refund', 'Delivery', 'General', 'Feedback', 'Spam'];
   const sentiments = ['All', 'Frustrated', 'Angry', 'Neutral', 'Sad', 'Happy'];
   const statuses = ['All', 'Open', 'Escalated', 'Replied', 'In Queue', 'Closed'];
 
-  // Apply search query and dropdown filters
-  const filteredThreads = threads.filter(t => {
-    // Search query filter
-    const matchesSearch = 
-      t.senderName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.senderEmail.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.topic.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      t.brief.toLowerCase().includes(searchQuery.toLowerCase());
-
+  const filtered = threads.filter((t) => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      t.senderName.toLowerCase().includes(q) ||
+      t.senderEmail.toLowerCase().includes(q) ||
+      t.topic.toLowerCase().includes(q) ||
+      (t.brief || '').toLowerCase().includes(q);
     const matchesCategory = selectedCategory === 'All' || t.category === selectedCategory;
     const matchesSentiment = selectedSentiment === 'All' || t.sentiment === selectedSentiment;
     const matchesStatus = selectedStatus === 'All' || t.status === selectedStatus;
-
     return matchesSearch && matchesCategory && matchesSentiment && matchesStatus;
   });
 
-  // Calculate stats
-  const totalOpen = threads.filter(t => t.status === 'Open').length;
-  const totalDrafts = threads.filter(t => t.draftStatus === 'Draft ready' || t.draftStatus === 'Draft prepared').length;
-
-  // Pagination logic
-  const totalItems = filteredThreads.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage) || 1;
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedThreads = filteredThreads.slice(startIndex, startIndex + itemsPerPage);
-
-  // Helper styles for sentiments
-  const getSentimentBadge = (sentiment: Sentiment) => {
+  const sentimentChip = (sentiment: Sentiment) => {
     switch (sentiment) {
-      case 'Angry':
-        return 'bg-red-50 text-red-700 border-red-100';
-      case 'Frustrated':
-        return 'bg-orange-50 text-orange-700 border-orange-100';
-      case 'Sad':
-        return 'bg-blue-50 text-blue-700 border-blue-100';
-      case 'Happy':
-        return 'bg-green-50 text-green-700 border-green-100';
-      default:
-        return 'bg-slate-50 text-slate-600 border-slate-200';
+      case 'Angry': return 'bg-red-50 text-red-700';
+      case 'Frustrated': return 'bg-orange-50 text-orange-700';
+      case 'Sad': return 'bg-blue-50 text-blue-700';
+      case 'Happy': return 'bg-green-50 text-green-700';
+      default: return 'bg-slate-100 text-slate-500';
     }
   };
 
-  // Helper avatar styles
-  const getAvatarBg = (name: string) => {
-    const hash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    const colors = [
-      'bg-orange-100 text-orange-700',
-      'bg-pink-100 text-pink-700',
-      'bg-purple-100 text-purple-700',
-      'bg-blue-100 text-blue-700',
-      'bg-green-100 text-green-700',
-      'bg-slate-100 text-slate-700',
-      'bg-rose-100 text-rose-700'
-    ];
+  const avatarBg = (name: string) => {
+    const hash = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
+    const colors = ['bg-orange-100 text-orange-700', 'bg-pink-100 text-pink-700', 'bg-purple-100 text-purple-700', 'bg-blue-100 text-blue-700', 'bg-emerald-100 text-emerald-700', 'bg-rose-100 text-rose-700'];
     return colors[hash % colors.length];
   };
 
+  const select = (value: string, set: (v: string) => void, opts: string[], label: string) => (
+    <div className="flex items-center gap-1.5">
+      <span className="text-[11px] text-slate-400">{label}:</span>
+      <select
+        value={value}
+        onChange={(e) => set(e.target.value)}
+        className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
+      >
+        {opts.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </div>
+  );
+
   return (
-    <div className="flex flex-col flex-1">
-      {/* Sub-Header / Filters block */}
-      <div className="px-8.5 py-4 flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white">
-        <span className="text-[10px] font-semibold text-slate-500 uppercase tracking-wider mr-2">Filters</span>
-        
-        {/* Category Filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-slate-400">Category:</span>
-          <select 
-            value={selectedCategory} 
-            onChange={(e) => { setSelectedCategory(e.target.value); setCurrentPage(1); }}
-            className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full text-xs font-medium border-none focus:outline-none focus:ring-1 focus:ring-emerald-500"
-          >
-            {categories.map(c => <option key={c} value={c}>{c}</option>)}
-          </select>
-        </div>
-
-        {/* Sentiment Filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-slate-400">Sentiment:</span>
-          <select 
-            value={selectedSentiment} 
-            onChange={(e) => { setSelectedSentiment(e.target.value); setCurrentPage(1); }}
-            className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full text-xs font-medium border-none focus:outline-none focus:ring-1 focus:ring-emerald-500"
-          >
-            {sentiments.map(s => <option key={s} value={s}>{s}</option>)}
-          </select>
-        </div>
-
-        {/* Status Filter */}
-        <div className="flex items-center gap-1.5">
-          <span className="text-[11px] text-slate-400">Status:</span>
-          <select 
-            value={selectedStatus} 
-            onChange={(e) => { setSelectedStatus(e.target.value); setCurrentPage(1); }}
-            className="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-full text-xs font-medium border-none focus:outline-none focus:ring-1 focus:ring-emerald-500"
-          >
-            {statuses.map(st => <option key={st} value={st}>{st}</option>)}
-          </select>
-        </div>
-
-        {/* Live Counters */}
-        <div className="ml-auto flex items-center gap-3 text-slate-500 text-xs font-medium">
-          <p>
-            <span className="font-semibold text-slate-800">{totalOpen}</span> open,{' '}
-            <span className="font-semibold text-slate-800">{totalDrafts}</span> drafts ready
-          </p>
-        </div>
+    <div className="flex flex-col flex-1 bg-white">
+      {/* Slim filter bar */}
+      <div className="px-5 py-2.5 flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white">
+        {select(selectedCategory, setSelectedCategory, categories, 'Category')}
+        {select(selectedSentiment, setSelectedSentiment, sentiments, 'Sentiment')}
+        {select(selectedStatus, setSelectedStatus, statuses, 'Status')}
+        <span className="ml-auto text-[11px] text-slate-400">{filtered.length} {filtered.length === 1 ? 'email' : 'emails'}</span>
       </div>
 
-      {/* Grid Table Workspace */}
-      <div className="flex-1 p-6 space-y-4 overflow-y-auto bg-[#F8FAFC]">
-        {/* Table Header Row */}
-        <div className="grid grid-cols-[1.2fr_1.8fr_2.5fr_1.1fr_1.1fr] px-6 py-2 text-[10px] font-bold text-slate-500 uppercase tracking-wider bg-slate-100 rounded-lg mx-2 border border-slate-200">
-          <div>Sender</div>
-          <div>Topic & Summary</div>
-          <div>AI Brief</div>
-          <div>Context</div>
-          <div className="text-right">Action Status</div>
-        </div>
-
-        {/* Thread List Body */}
-        {paginatedThreads.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-400 bg-white border border-slate-200 rounded-xl">
-            <p className="text-sm font-medium">No emails found matching the filter criteria.</p>
-            <button 
-              onClick={() => { setSelectedCategory('All'); setSelectedSentiment('All'); setSelectedStatus('All'); }}
-              className="mt-4 text-xs font-bold text-emerald-600 hover:underline"
-            >
-              Reset active filters
-            </button>
+      {/* Gmail-style list */}
+      <div className="flex-1 overflow-y-auto">
+        {filtered.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-24 text-slate-400">
+            <p className="text-sm font-medium">No emails here.</p>
+            <p className="text-xs mt-1">New mail to the connected inbox appears within ~60s.</p>
           </div>
         ) : (
-          paginatedThreads.map((thread) => {
+          filtered.map((thread) => {
+            const needsAttention = thread.status !== 'Replied' && thread.status !== 'Closed';
             const isEscalated = thread.status === 'Escalated';
-            const initials = thread.senderName.split(' ').map(n => n[0]).join('');
-            
+            const draftReady = thread.draftStatus === 'Draft ready' || thread.draftStatus === 'Draft prepared';
+            const initials = thread.senderName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
+            const mine = currentEmail && thread.assignedTo === currentEmail;
             return (
-              <div 
+              <div
                 key={thread.id}
                 onClick={() => onSelectThread(thread)}
-                className={`grid grid-cols-[1.2fr_1.8fr_2.5fr_1.1fr_1.1fr] items-center px-6 py-4.5 bg-white border rounded-xl hover:bg-slate-50 transition-all cursor-pointer group shadow-sm relative ${
-                  isEscalated 
-                    ? 'border-l-4 border-l-red-500 border-y border-r border-slate-200' 
-                    : 'border-slate-200'
+                className={`group flex items-center gap-3 pr-5 py-2.5 cursor-pointer border-b border-slate-100 transition-colors ${
+                  isEscalated ? 'bg-rose-50/40 border-l-2 border-l-rose-400 pl-[18px]' : 'hover:bg-slate-50 pl-5'
                 }`}
               >
-                {/* 1. Sender column */}
-                <div className="flex items-center gap-3 overflow-hidden">
-                  <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${getAvatarBg(thread.senderName)}`}>
-                    {initials}
-                  </div>
-                  <div className="truncate">
-                    <p className="text-xs font-bold text-slate-800 truncate">{thread.senderName}</p>
-                    <p className="text-[10px] text-slate-500 truncate leading-none mt-0.5">{thread.senderEmail}</p>
-                  </div>
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 ${avatarBg(thread.senderName)}`}>
+                  {initials}
                 </div>
 
-                {/* 2. Topic & Sentiment */}
-                <div className="pr-4 overflow-hidden">
-                  <p className="text-xs font-bold text-slate-800 truncate">{thread.topic}</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    <span className={`px-2 py-0.5 border text-[9px] font-bold rounded flex items-center gap-1 uppercase tracking-tight ${getSentimentBadge(thread.sentiment)}`}>
-                      <CircleDot className="w-2 h-2 fill-current" />
-                      {thread.sentiment}
-                    </span>
-                  </div>
-                </div>
-
-                {/* 3. AI Brief Column */}
-                <div className="pr-4">
-                  <p className="text-xs text-slate-500 italic leading-snug line-clamp-2">
-                    {thread.brief}
-                  </p>
-                </div>
-
-                {/* 4. Category & Status Context Badges */}
-                <div className="flex flex-col gap-1 items-start">
-                  <span className="px-2 py-0.5 border border-slate-200 rounded text-[9px] font-semibold bg-slate-50 text-slate-700">
-                    {thread.category}
+                {/* Sender */}
+                <div className="w-40 shrink-0 truncate flex items-center">
+                  <span className={`text-xs truncate ${needsAttention ? 'font-bold text-slate-900' : 'font-medium text-slate-500'}`}>
+                    {thread.senderName}
                   </span>
-                  
-                  {thread.status === 'Escalated' ? (
-                    <span className="px-2 py-0.5 bg-purple-100 text-purple-700 border border-purple-200 rounded text-[9px] font-bold flex items-center gap-0.5 uppercase tracking-wide">
-                      Escalated
+                  {mine && <span className="ml-1.5 text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded uppercase">You</span>}
+                </div>
+
+                {/* Subject + snippet */}
+                <div className="flex-1 min-w-0 flex items-baseline gap-2">
+                  <span className={`text-xs truncate ${needsAttention ? 'font-semibold text-slate-800' : 'text-slate-500'}`}>{thread.topic}</span>
+                  <span className="text-xs text-slate-400 truncate hidden lg:inline">— {thread.brief}</span>
+                </div>
+
+                {/* Labels */}
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {isEscalated && (
+                    <span className="text-[9px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded uppercase tracking-tight flex items-center gap-0.5">
+                      <AlertTriangle className="w-2.5 h-2.5" /> Escalated
                     </span>
-                  ) : thread.status === 'Open' ? (
-                    <span className="px-2 py-0.5 border border-amber-300 text-amber-700 rounded text-[9px] font-semibold uppercase tracking-wide">
-                      Open
+                  )}
+                  <span className="text-[9px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded hidden sm:inline">{thread.category}</span>
+                  {thread.sentiment !== 'Neutral' && (
+                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tight hidden md:flex items-center gap-0.5 ${sentimentChip(thread.sentiment)}`}>
+                      <CircleDot className="w-2 h-2 fill-current" /> {thread.sentiment}
                     </span>
-                  ) : (
-                    <span className="px-2 py-0.5 border border-emerald-300 text-emerald-700 rounded text-[9px] font-semibold uppercase tracking-wide">
-                      {thread.status}
+                  )}
+                  {draftReady && (
+                    <span className="text-emerald-600" title="Draft ready">
+                      <Sparkles className="w-3.5 h-3.5 fill-current" />
                     </span>
                   )}
                 </div>
 
-                {/* 5. Action Status indicator - floats right */}
-                <div className="flex justify-end gap-2 items-center text-right overflow-hidden">
-                  {thread.draftStatus === 'Draft ready' || thread.draftStatus === 'Draft prepared' ? (
-                    <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 shrink-0 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100">
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-600 fill-current" />
-                      Draft ready
-                    </span>
-                  ) : thread.status === 'Escalated' ? (
-                    <button className="text-[10px] font-bold px-2.5 py-1 bg-slate-900 border border-slate-900 hover:bg-slate-800 text-white rounded-lg shrink-0 transition-colors">
-                      {thread.category === 'Legal' ? 'View Case' : thread.category === 'Delivery' ? 'Trace Hub' : 'View Case'}
-                    </button>
-                  ) : (
-                    <span className="text-[10px] text-slate-400 capitalize">{thread.draftStatus}</span>
-                  )}
-                  
-                  <ArrowRight className="w-3.5 h-3.5 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity ml-1 shrink-0" />
-                </div>
+                <span className="text-[10px] text-slate-400 w-16 text-right shrink-0">{thread.waitingTime}</span>
               </div>
             );
           })
         )}
       </div>
-
-      {/* Pagination / Footer view */}
-      <footer className="p-5.5 flex justify-between items-center border-t border-slate-200 bg-white">
-        <div className="flex items-center gap-4">
-          <p className="text-xs text-slate-500">
-            Showing <span className="text-slate-800 font-bold">{startIndex + 1}-{Math.min(startIndex + itemsPerPage, totalItems)}</span> of <span className="text-slate-800 font-bold">{totalItems}</span> emails
-          </p>
-          <div className="h-4 w-px bg-slate-200" />
-          <select 
-            value={itemsPerPage} 
-            onChange={(e) => { setItemsPerPage(Number(e.target.value)); setCurrentPage(1); }}
-            className="bg-transparent border-none text-xs font-bold focus:ring-0 p-0 pr-6 text-slate-700 cursor-pointer"
-          >
-            <option value={5}>Show 5 per page</option>
-            <option value={10}>Show 10 per page</option>
-            <option value={20}>Show 20 per page</option>
-          </select>
-        </div>
-
-        {/* Buttons */}
-        <div className="flex gap-1.5">
-          <button 
-            disabled={currentPage === 1}
-            onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-            className="p-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-500 disabled:opacity-30 transition-all cursor-pointer"
-          >
-            &larr; Prev
-          </button>
-          
-          {Array.from({ length: totalPages }).map((_, idx) => (
-            <button
-              key={idx}
-              onClick={() => setCurrentPage(idx + 1)}
-              className={`px-3 py-1 text-xs font-bold rounded-lg transition-all cursor-pointer ${
-                currentPage === idx + 1 
-                  ? 'bg-emerald-600 text-white' 
-                  : 'hover:bg-slate-100 text-slate-600'
-              }`}
-            >
-              {idx + 1}
-            </button>
-          ))}
-
-          <button 
-            disabled={currentPage === totalPages}
-            onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-            className="p-1.5 border border-slate-200 rounded-lg hover:bg-slate-50 text-slate-500 disabled:opacity-30 transition-all cursor-pointer"
-          >
-            Next &rarr;
-          </button>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -9,7 +9,7 @@ import type { RetrievedChunk } from '../kb';
 const THREAD_SELECT = `
   select t.id, t.topic, t.brief, t.category, t.sentiment, t.intent, t.status,
          t.draft_status, t.trigger_reason, t.contact_count, t.order_id,
-         t.has_attachment, t.waiting_time,
+         t.has_attachment, t.waiting_time, t.assigned_to,
          s.email as sender_email, s.display_name as sender_name, s.vip,
          coalesce(
            json_agg(
@@ -39,6 +39,7 @@ interface ThreadRow {
   sender_email: string | null;
   sender_name: string | null;
   vip: boolean | null;
+  assigned_to: string | null;
   messages: Message[];
 }
 
@@ -61,7 +62,16 @@ function rowToThread(r: ThreadRow): EmailThread {
     vip: r.vip || undefined,
     hasAttachment: r.has_attachment || undefined,
     intent: r.intent || undefined,
+    assignedTo: r.assigned_to || undefined,
   };
+}
+
+// Assign a thread to an agent (claim).
+export async function claimThread(threadId: string, assignee: string): Promise<EmailThread | null> {
+  if (!isDbConfigured()) return getThread(threadId);
+  await query('update threads set assigned_to = $2, updated_at = now() where id = $1', [threadId, assignee]);
+  await logEvent('claimed', threadId);
+  return getThread(threadId);
 }
 
 export async function listThreads(): Promise<EmailThread[]> {

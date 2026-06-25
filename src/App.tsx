@@ -48,7 +48,7 @@ export default function App() {
   const [rules, setRules] = useState<SettingsRule[]>(INITIAL_RULES);
   const [selectedAgent, setSelectedAgent] = useState<string>('Alex Carter');
   const [activeTab, setActiveTab] = useState<string>('inbox');
-  const [subTab, setSubTab] = useState<'all' | 'queue' | 'team'>('all');
+  const [subTab, setSubTab] = useState<'all' | 'queue'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedThread, setSelectedThread] = useState<EmailThread | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
@@ -113,33 +113,22 @@ export default function App() {
     }
   };
 
-  // SubTab Filtering
+  // SubTab Filtering: My Queue = threads assigned to the signed-in agent.
   const getFilteredSubtypeThreads = (list: EmailThread[]) => {
     if (subTab === 'queue') {
-      // In a real database, filters by current agent's claimed threads
-      // Standard mock logic: Claimed are THR-001, THR-003, THR-005
-      return list.filter(t => ['THR-001', 'THR-003', 'THR-005'].includes(t.id));
-    }
-    if (subTab === 'team') {
-      return list.filter(t => t.contactCount > 1 || t.status === 'Replied');
+      return list.filter(t => me?.email && t.assignedTo === me.email);
     }
     return list;
   };
 
-  // Claim click handler
+  // Claim = assign this thread to the current agent (it moves into My Queue).
   const handleClaimThread = (threadId: string) => {
-    setThreads(prev => prev.map(t => {
-      if (t.id === threadId) {
-        return {
-          ...t,
-          status: 'Open', // Claimed moves to open queue
-          triggerReason: 'Claimed by ' + selectedAgent
-        };
-      }
-      return t;
-    }));
-    persistThread(threadId, { status: 'Open', triggerReason: 'Claimed by ' + selectedAgent });
-    alert(`Case ${threadId} has been added to your queue!`);
+    const email = me?.email;
+    setThreads(prev => prev.map(t => (t.id === threadId ? { ...t, assignedTo: email } : t)));
+    if (selectedThread?.id === threadId) {
+      setSelectedThread(s => (s ? { ...s, assignedTo: email } : s));
+    }
+    fetch(`/api/emails/${threadId}/claim`, { method: 'POST' }).catch((err) => console.error('Claim failed:', err));
   };
 
   // Row update callbacks (passed to DetailView)
@@ -201,13 +190,16 @@ export default function App() {
       <div className="flex-1 pl-[260px] flex flex-col h-screen overflow-hidden">
         
         {/* CONTEXT HEADER BAR */}
-        <Header 
+        <Header
           title={activeTab.toUpperCase()}
           searchPlaceholder={getSearchPlaceholder()}
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
           subTab={subTab}
           setSubTab={setSubTab}
+          showSubTabs={activeTab === 'inbox' && !selectedThread}
+          allCount={threads.length}
+          queueCount={threads.filter(t => me.email && t.assignedTo === me.email).length}
           openaiModel="Gemini 2.5 Flash"
         />
 
@@ -215,19 +207,22 @@ export default function App() {
         <main className="flex-1 flex flex-col overflow-hidden relative">
           
           {selectedThread ? (
-            <DetailView 
-              thread={selectedThread} 
+            <DetailView
+              thread={selectedThread}
               onBack={() => setSelectedThread(null)}
               onUpdateThread={handleUpdateThread}
+              onClaim={handleClaimThread}
+              currentEmail={me.email}
             />
           ) : (
             <>
               {/* Tab routing views */}
               {activeTab === 'inbox' && (
-                <InboxTab 
-                  threads={getFilteredSubtypeThreads(threads)} 
+                <InboxTab
+                  threads={getFilteredSubtypeThreads(threads)}
                   onSelectThread={(thread) => setSelectedThread(thread)}
                   searchQuery={searchQuery}
+                  currentEmail={me.email}
                 />
               )}
 

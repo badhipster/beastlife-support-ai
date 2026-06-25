@@ -33,6 +33,9 @@ create table if not exists threads (
   updated_at      timestamptz not null default now()
 );
 
+-- assigned_to added post-hoc (ADD COLUMN IF NOT EXISTS so it applies on re-migrate).
+alter table threads add column if not exists assigned_to text;
+
 create table if not exists messages (
   id               text primary key,
   thread_id        text not null references threads(id) on delete cascade,

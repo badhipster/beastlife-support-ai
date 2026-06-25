@@ -6,8 +6,11 @@ interface HeaderProps {
   searchPlaceholder: string;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
-  subTab: 'all' | 'queue' | 'team';
-  setSubTab: (subTab: 'all' | 'queue' | 'team') => void;
+  subTab: 'all' | 'queue';
+  setSubTab: (subTab: 'all' | 'queue') => void;
+  showSubTabs?: boolean;
+  allCount?: number;
+  queueCount?: number;
   openaiModel?: string;
 }
 
@@ -18,6 +21,9 @@ export default function Header({
   setSearchQuery,
   subTab,
   setSubTab,
+  showSubTabs = false,
+  allCount = 0,
+  queueCount = 0,
   openaiModel = "Gemini 2.5 Flash"
 }: HeaderProps) {
   return (
@@ -41,39 +47,32 @@ export default function Header({
           />
         </div>
 
-        {/* Quick Sub-Tabs */}
-        <nav className="flex gap-4 h-full items-center pl-4">
-          <button 
-            onClick={() => setSubTab('all')}
-            className={`text-xs pb-1 transition-all ${
-              subTab === 'all' 
-                ? 'text-emerald-600 font-bold border-b-2 border-emerald-600' 
-                : 'text-slate-500 hover:text-emerald-500'
-            }`}
-          >
-            All Emails
-          </button>
-          <button 
-            onClick={() => setSubTab('queue')}
-            className={`text-xs pb-1 transition-all ${
-              subTab === 'queue' 
-                ? 'text-emerald-600 font-bold border-b-2 border-emerald-600' 
-                : 'text-slate-500 hover:text-emerald-500'
-            }`}
-          >
-            My Queue
-          </button>
-          <button 
-            onClick={() => setSubTab('team')}
-            className={`text-xs pb-1 transition-all ${
-              subTab === 'team' 
-                ? 'text-emerald-600 font-bold border-b-2 border-emerald-600' 
-                : 'text-slate-500 hover:text-emerald-500'
-            }`}
-          >
-            Team Activity
-          </button>
-        </nav>
+        {/* Inbox filter tabs (All = whole inbox, My Queue = assigned to me) */}
+        {showSubTabs && (
+          <nav className="flex gap-4 h-full items-center pl-4">
+            <button
+              onClick={() => setSubTab('all')}
+              className={`text-xs pb-1 transition-all ${
+                subTab === 'all'
+                  ? 'text-emerald-600 font-bold border-b-2 border-emerald-600'
+                  : 'text-slate-500 hover:text-emerald-500'
+              }`}
+            >
+              All Emails <span className="text-slate-400 font-normal">{allCount}</span>
+            </button>
+            <button
+              onClick={() => setSubTab('queue')}
+              className={`text-xs pb-1 transition-all ${
+                subTab === 'queue'
+                  ? 'text-emerald-600 font-bold border-b-2 border-emerald-600'
+                  : 'text-slate-500 hover:text-emerald-500'
+              }`}
+              title="Emails assigned to you"
+            >
+              My Queue <span className="text-slate-400 font-normal">{queueCount}</span>
+            </button>
+          </nav>
+        )}
       </div>
 
       <div className="flex items-center gap-4">

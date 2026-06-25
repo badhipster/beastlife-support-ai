@@ -31,6 +31,7 @@ export interface EmailThread {
   vip?: boolean;
   hasAttachment?: boolean;
   intent?: string;
+  assignedTo?: string;
 }
 
 export interface KBSection {
