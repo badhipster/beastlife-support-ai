@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, ArrowUpRight, AlertTriangle, CheckCircle2, Inbox as InboxIcon } from 'lucide-react';
+import { Sparkles, ArrowUpRight, AlertTriangle, CheckCircle2, Inbox as InboxIcon, Clock, TrendingUp } from 'lucide-react';
+import {
+  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer
+} from 'recharts';
 
 interface Analytics {
   total: number;
@@ -14,6 +17,10 @@ interface Analytics {
   byStatus: { label: string; count: number }[];
   byCategory: { label: string; count: number }[];
   bySentiment: { label: string; count: number }[];
+  volumeData: { date: string; received: number; autoReplied: number; escalated: number }[];
+  sentimentTrend: { date: string; Happy: number; Neutral: number; Frustrated: number }[];
+  topEscalationReasons: { reason: string; count: number }[];
+  avgResponseTime: { ai: string; human: string };
 }
 
 // DESIGN.md sentiment tokens.
@@ -110,9 +117,75 @@ export default function AnalyticsTab() {
           </div>
           <p className="text-[10px] text-slate-400">{data.replied + data.closed} replied or closed</p>
         </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-1.5 lg:col-span-4 flex items-center justify-between">
+          <div>
+             <div className="flex items-center gap-2 text-slate-400 text-[10px] uppercase font-semibold tracking-widest mb-1">
+                <span>Avg Response Time</span>
+                <Clock className="w-3.5 h-3.5" />
+             </div>
+             <p className="text-[10px] text-slate-500">Automated vs Human Dispatch</p>
+          </div>
+          <div className="flex items-center gap-8">
+            <div>
+              <p className="text-2xl font-semibold text-[#1A73E8]">{data.avgResponseTime?.ai || 'N/A'}</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">AI Drafted</p>
+            </div>
+            <div className="w-px h-8 bg-slate-200"></div>
+            <div>
+              <p className="text-2xl font-semibold text-slate-700">{data.avgResponseTime?.human || 'N/A'}</p>
+              <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Human Handled</p>
+            </div>
+          </div>
+        </div>
       </section>
 
-      {/* 2. Status breakdown + sentiment donut */}
+      {/* 2. Charts: Volume and Sentiment Trend */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-4 h-80 flex flex-col">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800">Email Volume (7 Days)</h3>
+            <p className="text-[10px] text-slate-500 mt-0.5">Received vs. Auto-replied vs. Escalated</p>
+          </div>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={data.volumeData || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
+                <RechartsTooltip contentStyle={{ fontSize: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600, color: '#475569' }} />
+                <Bar dataKey="received" name="Received" fill="#94A3B8" radius={[2, 2, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="autoReplied" name="Replied (AI)" fill="#10B981" radius={[2, 2, 0, 0]} maxBarSize={40} />
+                <Bar dataKey="escalated" name="Escalated" fill="#F43F5E" radius={[2, 2, 0, 0]} maxBarSize={40} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-4 h-80 flex flex-col">
+          <div>
+            <h3 className="text-sm font-semibold text-slate-800">Sentiment Trend (7 Days)</h3>
+            <p className="text-[10px] text-slate-500 mt-0.5">Customer emotion across incoming emails</p>
+          </div>
+          <div className="flex-1 min-h-0">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={data.sentimentTrend || []} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                <XAxis dataKey="date" axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
+                <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#64748B' }} />
+                <RechartsTooltip contentStyle={{ fontSize: '12px', borderRadius: '8px', border: '1px solid #E2E8F0', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', fontWeight: 600, color: '#475569' }} />
+                <Line type="monotone" dataKey="Happy" stroke="#16A34A" strokeWidth={3} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="Neutral" stroke="#94A3B8" strokeWidth={3} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+                <Line type="monotone" dataKey="Frustrated" stroke="#EA580C" strokeWidth={3} dot={{ r: 3, strokeWidth: 2 }} activeDot={{ r: 5 }} />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </section>
+
+      {/* 3. Top Escalations & Status */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm lg:col-span-2 flex flex-col space-y-4">
           <div>
@@ -138,60 +211,31 @@ export default function AnalyticsTab() {
           </p>
         </div>
 
-        {/* Sentiment donut (real segments) */}
+        {/* Top Escalation Reasons */}
         <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex flex-col space-y-4">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-sm font-semibold text-slate-800">Sentiment Split</h3>
-              <p className="text-[10px] text-slate-500 mt-0.5">Classification across all threads</p>
+              <h3 className="text-sm font-semibold text-slate-800">Top Escalation Drivers</h3>
+              <p className="text-[10px] text-slate-500 mt-0.5">Why emails bypass the AI</p>
             </div>
-            {faPct > 0 && (
-              <p className="bg-orange-50 border border-orange-100 text-[10px] font-semibold text-orange-700 px-2 py-0.5 rounded">
-                {faPct}% Frustrated/Angry
-              </p>
+            <TrendingUp className="w-4 h-4 text-slate-400" />
+          </div>
+          <div className="flex-1 space-y-3 pt-2">
+            {(data.topEscalationReasons || []).length > 0 ? (data.topEscalationReasons || []).map((r, i) => (
+              <div key={i} className="flex items-center justify-between p-2 rounded bg-slate-50 border border-slate-100">
+                 <span className="text-xs font-medium text-slate-700">{r.reason}</span>
+                 <span className="text-xs font-bold text-rose-600 bg-rose-100 px-2 py-0.5 rounded-full">{r.count}</span>
+              </div>
+            )) : (
+              <div className="flex items-center justify-center h-full pb-4">
+                 <p className="text-xs text-slate-400 italic">No escalations recorded.</p>
+              </div>
             )}
-          </div>
-
-          <div className="flex justify-center py-4">
-            <div className="relative w-36 h-36">
-              <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                <circle cx="18" cy="18" r="16" fill="transparent" stroke="#F1F5F9" strokeWidth="3" />
-                {donut.map((seg) => (
-                  <circle
-                    key={seg.label}
-                    cx="18"
-                    cy="18"
-                    r="16"
-                    fill="transparent"
-                    stroke={seg.color}
-                    strokeWidth="3"
-                    strokeDasharray={`${seg.pct} 100`}
-                    strokeDashoffset={seg.dashoffset}
-                  />
-                ))}
-              </svg>
-              <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xl font-semibold text-slate-800">{data.total}</span>
-                <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider">Processed</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 pb-1">
-            {data.bySentiment.map((s) => (
-              <div key={s.label} className="flex items-center gap-2 p-1.5 bg-slate-50 rounded-lg border border-slate-100">
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: SENTIMENT_COLOR[s.label] || '#CBD5E1' }} />
-                <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-semibold text-slate-700 truncate leading-tight">{s.label}</p>
-                </div>
-                <span className="text-[10px] font-semibold text-slate-800">{s.count}</span>
-              </div>
-            ))}
           </div>
         </div>
       </section>
 
-      {/* 3. Category breakdown — real counts */}
+      {/* 4. Category breakdown — real counts */}
       <section className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-4">
         <div>
           <h3 className="text-sm font-semibold text-slate-800">Emails by Category</h3>

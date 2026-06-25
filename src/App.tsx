@@ -51,6 +51,9 @@ export default function App() {
   const [subTab, setSubTab] = useState<'all' | 'queue'>('all');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedThread, setSelectedThread] = useState<EmailThread | null>(null);
+  // When set, the Knowledge Base tab opens focused on this KB source_id
+  // (deep-link from a draft's cited sources).
+  const [kbFocusSource, setKbFocusSource] = useState<string | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
   const [gmailNotice, setGmailNotice] = useState<{ ok: boolean; email?: string } | null>(null);
   // Authenticated user: undefined = loading, null = signed out.
@@ -81,14 +84,16 @@ export default function App() {
 
   // Load threads from the API, and poll so newly ingested mail appears live
   // (the Gmail poller ingests server-side every ~60s).
+  const fetchThreads = () => {
+    fetch('/api/emails')
+      .then((r) => r.json())
+      .then((data) => setThreads(data.threads || []))
+      .catch((err) => console.error('Failed to load emails:', err));
+  };
+
   useEffect(() => {
-    const load = () =>
-      fetch('/api/emails')
-        .then((r) => r.json())
-        .then((data) => setThreads(data.threads || []))
-        .catch((err) => console.error('Failed to load emails:', err));
-    load();
-    const id = setInterval(load, 20000);
+    fetchThreads();
+    const id = setInterval(fetchThreads, 20000);
     return () => clearInterval(id);
   }, []);
 
@@ -124,6 +129,13 @@ export default function App() {
       return list.filter(t => me?.email && t.assignedTo === me.email);
     }
     return list;
+  };
+
+  // Deep-link from a draft's cited source to the Knowledge Base tab (admin only).
+  const handleViewInKb = (sourceId: string) => {
+    setKbFocusSource(sourceId);
+    setSelectedThread(null);
+    setActiveTab('kb');
   };
 
   // Claim = assign this thread to the current agent (it moves into My Queue).
@@ -163,7 +175,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC] flex font-sans antialiased text-slate-800">
+    <div className="min-h-screen flex antialiased text-slate-800">
 
       {/* Gmail connect confirmation toast (after OAuth redirect) */}
       {gmailNotice && (
@@ -182,6 +194,7 @@ export default function App() {
         setActiveTab={(tab) => {
           setActiveTab(tab);
           setSelectedThread(null); // Clear selected drawer context when shifting tabs
+          setKbFocusSource(null); // Drop any KB deep-link focus on manual navigation
         }}
         openThreadsCount={openThreadsCount}
         escalatedCount={escalatedCount}
@@ -192,7 +205,7 @@ export default function App() {
       />
 
       {/* PRIMARY DESKTOP APP FLOW CONTAINER */}
-      <div className="flex-1 pl-[260px] flex flex-col h-screen overflow-hidden">
+      <div className="flex-1 pl-64 flex flex-col h-screen overflow-hidden">
         
         {/* CONTEXT HEADER BAR */}
         <Header
@@ -207,6 +220,16 @@ export default function App() {
           queueCount={threads.filter(t => me.email && t.assignedTo === me.email).length}
           openaiModel="Gemini 2.5 Flash"
           user={{ name: me.name, email: me.email, picture: me.picture }}
+          showSearch={activeTab === 'inbox' || activeTab === 'escalations'}
+          onLogout={async () => {
+            try {
+              await fetch('/api/auth/logout');
+            } catch (e) {
+              console.error(e);
+            } finally {
+              setMe(null);
+            }
+          }}
         />
 
         {/* MAIN VISUAL WORKSPACE PANEL */}
@@ -219,6 +242,8 @@ export default function App() {
               onUpdateThread={handleUpdateThread}
               onClaim={handleClaimThread}
               currentEmail={me.email}
+              onViewInKb={handleViewInKb}
+              canOpenKb={me.role === 'admin'}
             />
           ) : (
             <>
@@ -229,6 +254,8 @@ export default function App() {
                   onSelectThread={(thread) => setSelectedThread(thread)}
                   searchQuery={searchQuery}
                   currentEmail={me.email}
+                  onNavigateToEscalations={() => setActiveTab('escalations')}
+                  onRefresh={fetchThreads}
                 />
               )}
 
@@ -245,7 +272,7 @@ export default function App() {
               )}
 
               {activeTab === 'kb' && (
-                <KnowledgeBaseTab />
+                <KnowledgeBaseTab focusSourceId={kbFocusSource} />
               )}
 
               {activeTab === 'settings' && (
