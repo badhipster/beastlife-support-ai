@@ -9,9 +9,17 @@ import KnowledgeBaseTab from './components/KnowledgeBaseTab';
 import SettingsTab from './components/SettingsTab';
 import OnboardingTab from './components/OnboardingTab';
 import OnboardingFlow from './components/OnboardingFlow';
+import Login from './components/Login';
 
 import { INITIAL_RULES } from './data/mockData';
 import { EmailThread, SettingsRule, Role } from './types';
+
+interface Me {
+  email: string;
+  name: string;
+  picture: string;
+  role: Role | null;
+}
 
 // Which tabs each role can access (admin = everything; agent = working surface).
 const ROLE_TABS: Record<Role, string[]> = {
@@ -45,18 +53,25 @@ export default function App() {
   const [selectedThread, setSelectedThread] = useState<EmailThread | null>(null);
   const [onboardingCompleted, setOnboardingCompleted] = useState<boolean>(false);
   const [gmailNotice, setGmailNotice] = useState<{ ok: boolean; email?: string } | null>(null);
-  const [role, setRole] = useState<Role | null>(() => localStorage.getItem('bl_role') as Role | null);
+  // Authenticated user: undefined = loading, null = signed out.
+  const [me, setMe] = useState<Me | null | undefined>(undefined);
+  const role = me?.role ?? null;
 
-  // Set/switch the active role (persisted), and reset to a safe tab.
-  const persistRole = (r: Role) => {
-    localStorage.setItem('bl_role', r);
-    setRole(r);
+  useEffect(() => {
+    fetch('/api/me')
+      .then((r) => r.json())
+      .then((d) => setMe(d.user || null))
+      .catch(() => setMe(null));
+  }, []);
+
+  // Onboarding finished: reflect the chosen role locally.
+  const handleRoleChosen = (r: Role) => {
+    setMe((prev) => (prev ? { ...prev, role: r } : prev));
     setActiveTab('inbox');
     setSelectedThread(null);
   };
 
-  // If the current role can't access the open tab (e.g. after a role switch),
-  // fall back to the inbox.
+  // If the current role can't access the open tab, fall back to the inbox.
   useEffect(() => {
     if (role && !ROLE_TABS[role].includes(activeTab)) {
       setActiveTab('inbox');
@@ -142,9 +157,15 @@ export default function App() {
     persistThread(updatedThread.id, updatedThread);
   };
 
-  // First-run gate: no role chosen yet -> onboarding step.
-  if (!role) {
-    return <OnboardingFlow persistRole={persistRole} />;
+  // Auth + onboarding gate.
+  if (me === undefined) {
+    return <div className="min-h-screen bg-[#0F172A] flex items-center justify-center text-slate-400 text-sm">Loading…</div>;
+  }
+  if (me === null) {
+    return <Login />;
+  }
+  if (!me.role) {
+    return <OnboardingFlow user={{ name: me.name }} onDone={handleRoleChosen} />;
   }
 
   return (
@@ -171,9 +192,9 @@ export default function App() {
         openThreadsCount={openThreadsCount}
         escalatedCount={escalatedCount}
         onboardingCompleted={onboardingCompleted}
-        allowedTabs={ROLE_TABS[role]}
-        role={role}
-        onSwitchRole={persistRole}
+        allowedTabs={ROLE_TABS[me.role]}
+        role={me.role}
+        user={{ name: me.name, email: me.email, picture: me.picture }}
       />
 
       {/* PRIMARY DESKTOP APP FLOW CONTAINER */}

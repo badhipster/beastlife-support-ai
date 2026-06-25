@@ -27,7 +27,9 @@ function oauthClient() {
 // Step 1: URL to send the user to for consent. offline + consent so we get a
 // refresh token we can reuse across restarts.
 export function getAuthUrl(): string {
-  return oauthClient().generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: SCOPES });
+  // state=connect distinguishes this Gmail-inbox connect from user login on the
+  // shared OAuth callback.
+  return oauthClient().generateAuthUrl({ access_type: 'offline', prompt: 'consent', scope: SCOPES, state: 'connect' });
 }
 
 // Step 2: exchange the code, persist the refresh token + connected address.

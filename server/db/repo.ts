@@ -196,6 +196,45 @@ export async function getAccount(): Promise<Account | null> {
   return rows[0] || null;
 }
 
+// --- App users (Google Sign-In) ---
+
+export interface SessionUser {
+  id: number;
+  email: string;
+  name: string;
+  picture: string;
+  role: string | null;
+}
+
+export async function upsertUser(args: { googleSub: string; email: string; name: string; picture: string }): Promise<SessionUser> {
+  const rows = await query<SessionUser>(
+    `insert into users (google_sub, email, name, picture) values ($1, $2, $3, $4)
+     on conflict (google_sub) do update set email = excluded.email, name = excluded.name, picture = excluded.picture, updated_at = now()
+     returning id, email, name, picture, role`,
+    [args.googleSub, args.email, args.name, args.picture]
+  );
+  return rows[0];
+}
+
+export async function setUserSession(id: number, token: string): Promise<void> {
+  await query('update users set session_token = $2, updated_at = now() where id = $1', [id, token]);
+}
+
+export async function getUserBySession(token: string): Promise<SessionUser | null> {
+  if (!isDbConfigured()) return null;
+  const rows = await query<SessionUser>('select id, email, name, picture, role from users where session_token = $1', [token]);
+  return rows[0] || null;
+}
+
+export async function clearUserSession(token: string): Promise<void> {
+  if (!isDbConfigured()) return;
+  await query('update users set session_token = null where session_token = $1', [token]);
+}
+
+export async function setUserRole(id: number, role: string): Promise<void> {
+  await query('update users set role = $2, updated_at = now() where id = $1', [id, role]);
+}
+
 // --- Ingest write path (Gmail poller) ---
 
 export interface IngestThread {

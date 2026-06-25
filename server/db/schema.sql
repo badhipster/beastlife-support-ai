@@ -112,6 +112,20 @@ create table if not exists accounts (
   updated_at    timestamptz not null default now()
 );
 
+-- App users authenticated via Google Sign-In. role is null until onboarded.
+create table if not exists users (
+  id            bigserial primary key,
+  google_sub    text unique not null,
+  email         text,
+  name          text,
+  picture       text,
+  role          text,            -- 'agent' | 'admin'
+  session_token text,
+  created_at    timestamptz not null default now(),
+  updated_at    timestamptz not null default now()
+);
+create index if not exists users_session_idx on users (session_token);
+
 -- IVFFlat index for cosine similarity over KB embeddings (created after seed
 -- ideally, but safe here; pgvector falls back to a scan when the index is empty).
 create index if not exists kb_chunks_embedding_idx

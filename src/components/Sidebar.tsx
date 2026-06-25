@@ -7,7 +7,7 @@ import {
   BookOpen,
   Settings,
   Compass,
-  Repeat
+  LogOut
 } from 'lucide-react';
 import { Role } from '../types';
 
@@ -19,7 +19,7 @@ interface SidebarProps {
   onboardingCompleted: boolean;
   allowedTabs: string[];
   role: Role;
-  onSwitchRole: (role: Role) => void;
+  user: { name: string; email: string; picture: string };
 }
 
 export default function Sidebar({
@@ -30,14 +30,10 @@ export default function Sidebar({
   onboardingCompleted,
   allowedTabs,
   role,
-  onSwitchRole
+  user
 }: SidebarProps) {
 
-  const agent = {
-    name: 'Alex Carter',
-    initials: 'AC',
-    photo: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=80&h=80&q=80'
-  };
+  const initials = (user.name || user.email || '?').split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
   const roleLabel = role === 'admin' ? 'CX Lead / Admin' : 'Support Agent';
 
   const allNavItems = [
@@ -98,28 +94,34 @@ export default function Sidebar({
         })}
       </nav>
 
-      {/* Profile + role switcher */}
+      {/* Profile + sign out (real signed-in user) */}
       <div className="px-4 py-4 border-t border-slate-800 mt-auto space-y-3">
         <div className="flex items-center gap-3">
-          <img
-            className="w-9 h-9 rounded-full object-cover border border-slate-700 shadow-sm"
-            src={agent.photo}
-            alt={agent.name}
-            referrerPolicy="no-referrer"
-          />
+          {user.picture ? (
+            <img
+              className="w-9 h-9 rounded-full object-cover border border-slate-700 shadow-sm"
+              src={user.picture}
+              alt={user.name}
+              referrerPolicy="no-referrer"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-emerald-800/50 text-emerald-300 flex items-center justify-center font-bold text-xs border border-emerald-700/50">
+              {initials}
+            </div>
+          )}
           <div className="flex-1 overflow-hidden">
-            <p className="text-xs font-bold text-white truncate leading-tight">{agent.name}</p>
+            <p className="text-xs font-bold text-white truncate leading-tight">{user.name}</p>
             <p className="text-[10px] text-emerald-400/90 font-semibold truncate mt-0.5">{roleLabel}</p>
+            <p className="text-[9px] text-slate-500 truncate">{user.email}</p>
           </div>
         </div>
-        <button
-          onClick={() => onSwitchRole(role === 'admin' ? 'agent' : 'admin')}
+        <a
+          href="/api/auth/logout"
           className="w-full flex items-center justify-center gap-1.5 text-[10px] font-bold text-slate-400 hover:text-white bg-slate-800/40 hover:bg-slate-800 rounded-lg py-2 transition-all"
-          title="Demo: switch persona to see role-based access"
         >
-          <Repeat className="w-3 h-3" />
-          Switch to {role === 'admin' ? 'Agent' : 'Admin'} view
-        </button>
+          <LogOut className="w-3 h-3" />
+          Sign out
+        </a>
       </div>
     </aside>
   );

@@ -11,6 +11,8 @@ import {
 } from './server/db/repo';
 import { isGmailConfigured, isConnected, getAuthUrl, handleCallback, sendReply } from './server/gmail';
 import { startPoller } from './server/poller';
+import { isAuthConfigured, getLoginUrl, handleLogin, getUserFromReq, logout, SESSION_COOKIE } from './server/auth';
+import { setUserRole } from './server/db/repo';
 
 dotenv.config();
 
@@ -242,17 +244,61 @@ app.get('/api/auth/google', (_req, res) => {
   res.redirect(getAuthUrl());
 });
 
+// Shared OAuth callback: state=login -> app sign-in; otherwise -> Gmail connect.
 app.get('/api/auth/google/callback', async (req, res) => {
+  const base = process.env.APP_URL || '';
   try {
     const code = req.query.code as string;
     if (!code) return res.status(400).send('Missing authorization code.');
+    if (req.query.state === 'login') {
+      const { token } = await handleLogin(code);
+      res.cookie(SESSION_COOKIE, token, { httpOnly: true, sameSite: 'lax', maxAge: 30 * 24 * 60 * 60 * 1000 });
+      return res.redirect(`${base}/`);
+    }
     const email = await handleCallback(code);
-    const base = process.env.APP_URL || '';
     res.redirect(`${base}/?gmail=connected&email=${encodeURIComponent(email)}`);
   } catch (error: any) {
     console.error('OAuth callback error:', error);
-    const base = process.env.APP_URL || '';
     res.redirect(`${base}/?gmail=error`);
+  }
+});
+
+// 6. API: app authentication (Google Sign-In)
+app.get('/api/auth/login', (_req, res) => {
+  if (!isAuthConfigured()) {
+    return res.status(400).send('Auth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.');
+  }
+  res.redirect(getLoginUrl());
+});
+
+app.get('/api/auth/logout', async (req, res) => {
+  await logout(req).catch(() => {});
+  res.clearCookie(SESSION_COOKIE);
+  res.redirect(`${process.env.APP_URL || ''}/`);
+});
+
+app.get('/api/me', async (req, res) => {
+  try {
+    const user = await getUserFromReq(req);
+    res.json({ user });
+  } catch (error: any) {
+    console.error('Get me error:', error);
+    res.json({ user: null });
+  }
+});
+
+// Set the signed-in user's role (during onboarding).
+app.post('/api/me/role', async (req, res) => {
+  try {
+    const user = await getUserFromReq(req);
+    if (!user) return res.status(401).json({ error: 'Not authenticated' });
+    const role = req.body.role;
+    if (role !== 'agent' && role !== 'admin') return res.status(400).json({ error: 'Invalid role' });
+    await setUserRole(user.id, role);
+    res.json({ user: { ...user, role } });
+  } catch (error: any) {
+    console.error('Set role error:', error);
+    res.status(500).json({ error: error.message || 'Error setting role' });
   }
 });
 
