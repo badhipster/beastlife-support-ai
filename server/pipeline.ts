@@ -144,7 +144,23 @@ export async function generateGroundedDraft(args: {
 }): Promise<DraftResult> {
   const { subject, message, senderName, category, sentiment } = args;
   const retrieval = await retrieveKB(`${subject || ''} ${message}`.trim(), 4);
-  const relevantChunks = retrieval.chunks.filter((c) => c.relevanceScore >= DRAFT_RELEVANCE_THRESHOLD);
+  let chunks = retrieval.chunks;
+
+  // For refund/return emails, also pull the actual policy text so the draft
+  // grounds on policy (not just similar-sounding complaint FAQs), then merge
+  // and keep the best by score.
+  const cat = (category || '').toLowerCase();
+  if (cat.includes('refund') || cat.includes('return')) {
+    const policy = await retrieveKB('BeastLife returns and refunds policy: return window, refund, replacement, exchange, eligibility', 3);
+    const byId = new Map<string, RetrievedChunk>();
+    [...chunks, ...policy.chunks].forEach((c) => {
+      const existing = byId.get(c.id);
+      if (!existing || c.relevanceScore > existing.relevanceScore) byId.set(c.id, c);
+    });
+    chunks = [...byId.values()].sort((a, b) => b.relevanceScore - a.relevanceScore).slice(0, 5);
+  }
+
+  const relevantChunks = chunks.filter((c) => c.relevanceScore >= DRAFT_RELEVANCE_THRESHOLD);
   const grounded = relevantChunks.length > 0;
   const kbRefs = relevantChunks.map((c) => ({ id: c.id, sourceId: c.sourceId, title: c.title, relevanceScore: c.relevanceScore }));
   const system = buildDraftSystemPrompt({ category, sentiment });

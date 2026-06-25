@@ -41,6 +41,18 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
     setTriageNote('');
     setKbQuery(thread.topic);
     searchKB(thread.topic);
+    // Load any pre-generated draft so a "draft ready" email opens with the
+    // draft in the editor for review — the "ready on arrival" promise.
+    fetch(`/api/emails/${thread.id}/draft`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.draft) {
+          setDraftText(d.draft.body || '');
+          setDraftKbRefs(d.draft.kbRefs || []);
+          setDraftGrounded(typeof d.draft.grounded === 'boolean' ? d.draft.grounded : null);
+        }
+      })
+      .catch(() => {});
     // Auto-run triage only for an unclassified thread (e.g. future ingested
     // mail). Seeded threads already carry a category, so this stays dormant
     // and never spends quota just from browsing.
@@ -217,6 +229,19 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
     setDraftText(prev => `${prev}\n\n[KB Note incorporated]:\n${chunkText}`);
   };
 
+  // The required next action for an escalated case, derived from its reason —
+  // so the agent sees *why* it escalated and what to do, up front.
+  const escalationNextAction = (): string => {
+    const r = (thread.triggerReason || '').toLowerCase();
+    if (r.includes('legal') || r.includes('regulat')) return 'Do not admit liability or offer a settlement. Review and reply personally.';
+    if (r.includes('health') || r.includes('adverse')) return 'Advise the customer to stop use and consult a healthcare professional. Give no medical advice.';
+    if (r.includes('evidence')) return 'Request a photo or unboxing video before resolving or escalating further.';
+    if (r.includes('vip')) return 'VIP / priority account — respond personally and promptly.';
+    if (r.includes('angry') || r.includes('repeat') || r.includes('3rd')) return 'Repeat angry contact — de-escalate and reply personally.';
+    if (r.includes('attachment')) return 'An attachment needs human review before replying.';
+    return 'Flagged for human review — handle per policy before replying.';
+  };
+
   return (
     <div className="flex-1 grid grid-cols-1 xl:grid-cols-[2fr_1fr] h-full overflow-hidden bg-[#F8FAFC]">
       
@@ -276,6 +301,23 @@ export default function DetailView({ thread, onBack, onUpdateThread }: DetailVie
             </button>
           </div>
         </div>
+
+        {/* Escalation guidance: why it escalated + the required next action */}
+        {thread.status === 'Escalated' && (
+          <div className="bg-rose-50 border-b border-rose-200 px-6 py-3 shrink-0">
+            <div className="flex items-start gap-2.5">
+              <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
+              <div className="space-y-0.5">
+                <p className="text-[11px] font-bold text-rose-700">
+                  Escalated{thread.triggerReason ? `: ${thread.triggerReason}` : ''}
+                </p>
+                <p className="text-[11px] text-rose-900/80 leading-snug">
+                  <span className="font-bold">Next:</span> {escalationNextAction()}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Dynamic Thread Header Summary Panel */}
         <div className="bg-slate-50/50 border-b border-slate-200 p-4 shrink-0 px-6">

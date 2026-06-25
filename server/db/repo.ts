@@ -303,6 +303,20 @@ export async function latestDraft(threadId: string): Promise<{ id: number; body:
   return rows[0] || null;
 }
 
+// Latest pending draft with its grounding refs, for loading into the editor
+// when an agent opens a "draft ready" email.
+export async function latestDraftFull(
+  threadId: string
+): Promise<{ body: string; kbRefs: unknown; grounded: boolean } | null> {
+  if (!isDbConfigured()) return null;
+  const rows = await query<any>(
+    `select body, kb_refs, grounded from drafts where thread_id = $1 and status <> 'sent' order by created_at desc limit 1`,
+    [threadId]
+  );
+  const r = rows[0];
+  return r ? { body: r.body, kbRefs: r.kb_refs ?? [], grounded: r.grounded } : null;
+}
+
 export async function markReplied(threadId: string, draftId: number | null): Promise<void> {
   if (!isDbConfigured()) return;
   await query(`update threads set status = 'Replied', draft_status = 'Sent', updated_at = now() where id = $1`, [threadId]);

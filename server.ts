@@ -7,7 +7,7 @@ import { evaluateEscalation } from './server/escalation';
 import { classifyEmail, generateGroundedDraft } from './server/pipeline';
 import {
   listThreads, getThread, updateThread, listRules, logEvent,
-  saveDraft, latestDraft, markReplied, getSendContext,
+  saveDraft, latestDraft, latestDraftFull, markReplied, getSendContext,
 } from './server/db/repo';
 import { isGmailConfigured, isConnected, getAuthUrl, handleCallback, sendReply } from './server/gmail';
 import { startPoller } from './server/poller';
@@ -97,6 +97,16 @@ app.get('/api/emails/:id', async (req, res) => {
   } catch (error: any) {
     console.error('Get email error:', error);
     res.status(500).json({ error: error.message || 'Error fetching email' });
+  }
+});
+
+// The latest pre-generated draft for a thread, so the editor opens populated.
+app.get('/api/emails/:id/draft', async (req, res) => {
+  try {
+    res.json({ draft: await latestDraftFull(req.params.id) });
+  } catch (error: any) {
+    console.error('Get draft error:', error);
+    res.status(500).json({ error: error.message || 'Error fetching draft' });
   }
 });
 
