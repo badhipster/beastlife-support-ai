@@ -16,18 +16,19 @@ interface Analytics {
   bySentiment: { label: string; count: number }[];
 }
 
+// DESIGN.md sentiment tokens.
 const SENTIMENT_COLOR: Record<string, string> = {
-  Happy: '#10B981',
-  Neutral: '#94A3B8',
-  Frustrated: '#F97316',
-  Sad: '#3B82F6',
-  Angry: '#EF4444',
+  Happy: '#16A34A',
+  Neutral: '#64748B',
+  Frustrated: '#EA580C',
+  Sad: '#2563EB',
+  Angry: '#DC2626',
 };
 
 const STATUS_COLOR: Record<string, string> = {
   Open: 'bg-amber-500',
   Escalated: 'bg-rose-500',
-  Replied: 'bg-emerald-500',
+  Replied: 'bg-green-500',
   'In Queue': 'bg-blue-500',
   Closed: 'bg-slate-400',
 };
@@ -43,7 +44,7 @@ export default function AnalyticsTab() {
   }, []);
 
   if (!data) {
-    return <div className="flex-1 p-8 text-sm text-slate-400 bg-[#F8FAFC]">Loading analytics…</div>;
+    return <div className="flex-1 p-8 text-sm text-slate-400 bg-[#F6F8FC]">Loading analytics…</div>;
   }
 
   const maxCategory = Math.max(1, ...data.byCategory.map((c) => c.count));
@@ -62,50 +63,50 @@ export default function AnalyticsTab() {
   });
 
   return (
-    <div className="flex-1 p-6 space-y-6 bg-[#F8FAFC] overflow-y-auto">
+    <div className="flex-1 p-6 space-y-6 bg-[#F6F8FC] overflow-y-auto">
       {/* 1. KPI cards — all live from the database */}
       <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-1.5">
-          <div className="flex justify-between items-center text-slate-400 text-[10px] uppercase font-bold tracking-widest">
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-1.5">
+          <div className="flex justify-between items-center text-slate-400 text-[10px] uppercase font-semibold tracking-widest">
             <span>Emails Received</span>
             <InboxIcon className="w-3.5 h-3.5 text-slate-400" />
           </div>
-          <p className="text-2xl font-bold text-slate-800">{data.total}</p>
+          <p className="text-2xl font-semibold text-slate-800">{data.total}</p>
           <p className="text-[10px] text-slate-400">Threads currently in the system</p>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-1.5">
-          <div className="flex justify-between items-center text-slate-400 text-[10px] uppercase font-bold tracking-widest">
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-1.5">
+          <div className="flex justify-between items-center text-slate-400 text-[10px] uppercase font-semibold tracking-widest">
             <span>Draft Coverage</span>
-            <span className="text-[#3b49cc] bg-blue-50 px-2 py-0.5 rounded text-[9px] font-semibold flex items-center gap-0.5">
-              <Sparkles className="w-3 h-3 text-emerald-600 fill-current" />
+            <span className="text-[#1A73E8] bg-blue-50 px-2 py-0.5 rounded text-[9px] font-semibold flex items-center gap-0.5">
+              <Sparkles className="w-3 h-3 text-[#1A73E8] fill-current" />
               AI
             </span>
           </div>
-          <p className="text-2xl font-bold text-slate-800">{data.draftRatioPct}%</p>
+          <p className="text-2xl font-semibold text-slate-800">{data.draftRatioPct}%</p>
           <div className="w-full bg-slate-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
-            <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${data.draftRatioPct}%` }} />
+            <div className="bg-[#1A73E8] h-full rounded-full" style={{ width: `${data.draftRatioPct}%` }} />
           </div>
           <p className="text-[10px] text-slate-400">{data.drafted} of {data.total} have a draft ready</p>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-1.5">
-          <div className="flex justify-between items-center text-slate-400 text-[10px] uppercase font-bold tracking-widest">
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-1.5">
+          <div className="flex justify-between items-center text-slate-400 text-[10px] uppercase font-semibold tracking-widest">
             <span>Escalated</span>
             <AlertTriangle className="w-3.5 h-3.5 text-rose-400" />
           </div>
-          <p className="text-2xl font-bold text-slate-800">{data.escalated}</p>
+          <p className="text-2xl font-semibold text-slate-800">{data.escalated}</p>
           <p className="text-[10px] text-slate-400">Flagged for human review, no auto-action</p>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-1.5">
-          <div className="flex justify-between items-center text-slate-400 text-[10px] uppercase font-bold tracking-widest">
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-1.5">
+          <div className="flex justify-between items-center text-slate-400 text-[10px] uppercase font-semibold tracking-widest">
             <span>Resolution Rate</span>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-[#1A73E8]" />
           </div>
-          <p className="text-2xl font-bold text-slate-800">{data.resolutionPct}%</p>
+          <p className="text-2xl font-semibold text-slate-800">{data.resolutionPct}%</p>
           <div className="w-full bg-slate-100 h-1.5 rounded-full mt-1.5 overflow-hidden">
-            <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${data.resolutionPct}%` }} />
+            <div className="bg-[#1A73E8] h-full rounded-full" style={{ width: `${data.resolutionPct}%` }} />
           </div>
           <p className="text-[10px] text-slate-400">{data.replied + data.closed} replied or closed</p>
         </div>
@@ -113,9 +114,9 @@ export default function AnalyticsTab() {
 
       {/* 2. Status breakdown + sentiment donut */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm lg:col-span-2 flex flex-col space-y-4">
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm lg:col-span-2 flex flex-col space-y-4">
           <div>
-            <h3 className="text-sm font-bold text-slate-800">Emails by Status</h3>
+            <h3 className="text-sm font-semibold text-slate-800">Emails by Status</h3>
             <p className="text-[10px] text-slate-500 mt-0.5">Live pipeline state across all threads</p>
           </div>
           <div className="space-y-3 pt-1">
@@ -128,7 +129,7 @@ export default function AnalyticsTab() {
                     style={{ width: `${data.total ? (s.count / data.total) * 100 : 0}%` }}
                   />
                 </div>
-                <span className="text-xs font-bold text-slate-800 w-6 text-right shrink-0">{s.count}</span>
+                <span className="text-xs font-semibold text-slate-800 w-6 text-right shrink-0">{s.count}</span>
               </div>
             ))}
           </div>
@@ -138,14 +139,14 @@ export default function AnalyticsTab() {
         </div>
 
         {/* Sentiment donut (real segments) */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm flex flex-col space-y-4">
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex flex-col space-y-4">
           <div className="flex justify-between items-center">
             <div>
-              <h3 className="text-sm font-bold text-slate-800">Sentiment Split</h3>
+              <h3 className="text-sm font-semibold text-slate-800">Sentiment Split</h3>
               <p className="text-[10px] text-slate-500 mt-0.5">Classification across all threads</p>
             </div>
             {faPct > 0 && (
-              <p className="bg-orange-50 border border-orange-100 text-[10px] font-bold text-orange-700 px-2 py-0.5 rounded">
+              <p className="bg-orange-50 border border-orange-100 text-[10px] font-semibold text-orange-700 px-2 py-0.5 rounded">
                 {faPct}% Frustrated/Angry
               </p>
             )}
@@ -170,8 +171,8 @@ export default function AnalyticsTab() {
                 ))}
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xl font-bold text-slate-800">{data.total}</span>
-                <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider">Processed</span>
+                <span className="text-xl font-semibold text-slate-800">{data.total}</span>
+                <span className="text-[9px] text-slate-400 font-semibold uppercase tracking-wider">Processed</span>
               </div>
             </div>
           </div>
@@ -181,9 +182,9 @@ export default function AnalyticsTab() {
               <div key={s.label} className="flex items-center gap-2 p-1.5 bg-slate-50 rounded-lg border border-slate-100">
                 <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: SENTIMENT_COLOR[s.label] || '#CBD5E1' }} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[10px] font-bold text-slate-700 truncate leading-tight">{s.label}</p>
+                  <p className="text-[10px] font-semibold text-slate-700 truncate leading-tight">{s.label}</p>
                 </div>
-                <span className="text-[10px] font-bold text-slate-800">{s.count}</span>
+                <span className="text-[10px] font-semibold text-slate-800">{s.count}</span>
               </div>
             ))}
           </div>
@@ -191,24 +192,24 @@ export default function AnalyticsTab() {
       </section>
 
       {/* 3. Category breakdown — real counts */}
-      <section className="bg-white border border-slate-200 rounded-3xl p-5 shadow-sm space-y-4">
+      <section className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-4">
         <div>
-          <h3 className="text-sm font-bold text-slate-800">Emails by Category</h3>
+          <h3 className="text-sm font-semibold text-slate-800">Emails by Category</h3>
           <p className="text-[10px] text-slate-500 mt-0.5">Model classification across all threads</p>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {data.byCategory.map((item) => (
-            <div key={item.label} className="p-4 border border-slate-100 rounded-2xl bg-slate-50/50 space-y-2">
+            <div key={item.label} className="p-4 border border-slate-100 rounded-lg bg-slate-50/50 space-y-2">
               <div className="flex justify-between items-center text-xs">
-                <span className="font-bold text-slate-700">{item.label}</span>
+                <span className="font-semibold text-slate-700">{item.label}</span>
                 <span className="text-[10px] font-mono text-slate-400">{item.count} {item.count === 1 ? 'email' : 'emails'}</span>
               </div>
               <div className="flex items-center gap-3">
                 <div className="flex-1 bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div className="bg-emerald-500 h-full rounded-full" style={{ width: `${(item.count / maxCategory) * 100}%` }} />
+                  <div className="bg-[#1A73E8] h-full rounded-full" style={{ width: `${(item.count / maxCategory) * 100}%` }} />
                 </div>
-                <span className="text-xs font-bold text-slate-800 shrink-0">
+                <span className="text-xs font-semibold text-slate-800 shrink-0">
                   {data.total ? Math.round((item.count / data.total) * 100) : 0}%
                 </span>
               </div>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { EmailThread, Message } from '../types';
-import { ArrowLeft, Sparkles, Tag, Send, AlertTriangle, BookOpen, UserCheck, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Sparkles, AlertTriangle, Printer, Trash2, Mail, CheckCircle2, UserCheck, FileText, RefreshCw, MessageSquare, Download, Bot, BookOpen } from 'lucide-react';
 
 interface DetailViewProps {
   thread: EmailThread;
@@ -12,72 +12,30 @@ interface DetailViewProps {
 
 export default function DetailView({ thread, onBack, onUpdateThread, onClaim, currentEmail }: DetailViewProps) {
   const [draftText, setDraftText] = useState<string>('');
-  const [isGenerating, setIsGenerating] = useState<boolean>(false);
-  const [isLocalSimulated, setIsLocalSimulated] = useState<boolean>(false);
   const [draftKbRefs, setDraftKbRefs] = useState<{ id: string; sourceId: string; title: string; relevanceScore: number }[]>([]);
-  const [draftGrounded, setDraftGrounded] = useState<boolean | null>(null);
-  const [isTriaging, setIsTriaging] = useState<boolean>(false);
-  const [triageNote, setTriageNote] = useState<string>('');
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
   useEffect(() => {
+    // Load the real pre-generated draft for this thread (empty if none yet).
     setDraftText('');
     setDraftKbRefs([]);
-    setDraftGrounded(null);
-    setTriageNote('');
-    setIsLocalSimulated(false);
-    // Load any pre-generated draft so a "draft ready" email opens with the draft in the editor.
+    setIsEditing(false);
     fetch(`/api/emails/${thread.id}/draft`)
       .then((r) => r.json())
       .then((d) => {
         if (d.draft) {
           setDraftText(d.draft.body || '');
           setDraftKbRefs(d.draft.kbRefs || []);
-          setDraftGrounded(typeof d.draft.grounded === 'boolean' ? d.draft.grounded : null);
         }
       })
       .catch(() => {});
-    if (!thread.category) runTriage();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [thread]);
 
-  const runTriage = async () => {
-    setIsTriaging(true);
-    try {
-      const res = await fetch('/api/triage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          subject: thread.topic,
-          message: thread.messages.map((m) => m.content).join('\n'),
-          contactCount: thread.contactCount,
-          vip: thread.vip,
-          hasAttachment: thread.hasAttachment,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        const escalated = !!data.escalation?.escalated;
-        onUpdateThread({
-          ...thread,
-          category: (data.categories && data.categories[0]) || thread.category,
-          sentiment: data.sentiment || thread.sentiment,
-          intent: data.intent || thread.intent,
-          ...(escalated ? { status: 'Escalated', draftStatus: 'Needs action', triggerReason: data.escalation.summary } : {}),
-        });
-        const cats = (data.categories || []).join(', ');
-        setTriageNote(`${data.simulated ? 'Offline triage' : 'AI triage'}: ${cats} · ${data.sentiment}${data.intent ? ` · ${data.intent}` : ''}${escalated ? ` · Escalated (${data.escalation.summary})` : ''}`);
-      }
-    } catch (err) {
-      console.error('Triage failed:', err);
-    } finally {
-      setIsTriaging(false);
-    }
-  };
-
-  const generateAIDraft = async () => {
+  const regenerate = async () => {
     setIsGenerating(true);
     try {
-      const response = await fetch('/api/generate-draft', {
+      const res = await fetch('/api/generate-draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -89,195 +47,235 @@ export default function DetailView({ thread, onBack, onUpdateThread, onClaim, cu
           threadId: thread.id,
         }),
       });
-      const data = await response.json();
-      if (response.ok) {
-        setDraftText(data.draft);
-        setIsLocalSimulated(!!data.simulated);
-        setDraftKbRefs(data.kbRefs || []);
-        setDraftGrounded(typeof data.grounded === 'boolean' ? data.grounded : null);
-      }
+      const d = await res.json();
+      // /api/generate-draft returns draft as a string, with kbRefs alongside.
+      setDraftText(d.draft || '');
+      setDraftKbRefs(d.kbRefs || []);
     } catch (err) {
-      console.error(err);
+      console.error('Failed to generate draft:', err);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleSendDraft = async () => {
-    if (!draftText.trim()) return;
-    let sent = false;
-    try {
-      const res = await fetch(`/api/emails/${thread.id}/approve`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: draftText }),
-      });
-      const data = await res.json();
-      sent = !!data.sent;
-    } catch (err) {
-      console.error('Approve/send failed:', err);
-    }
-    const newReply: Message = { id: `rep-${Date.now()}`, sender: 'BeastLife Support AI', content: draftText, timestamp: 'Just now', isCustomer: false };
-    onUpdateThread({ ...thread, status: 'Replied', draftStatus: 'Sent', messages: [...thread.messages, newReply] });
-    setDraftText('');
-    alert(sent ? `Reply sent to ${thread.senderEmail} in Gmail.` : 'Draft approved and logged. (Live Gmail send applies to connected-inbox threads.)');
-    onBack();
-  };
-
-  const handleEscalate = () => {
-    onUpdateThread({ ...thread, status: 'Escalated', draftStatus: 'Needs action', triggerReason: 'Manually escalated by agent for review.' });
-  };
-
-  const sentimentChip = (s: string) => {
-    switch (s) {
-      case 'Angry': return 'text-red-700 bg-red-50';
-      case 'Frustrated': return 'text-orange-700 bg-orange-50';
-      case 'Sad': return 'text-blue-700 bg-blue-50';
-      case 'Happy': return 'text-green-700 bg-green-50';
-      default: return 'text-slate-600 bg-slate-100';
-    }
-  };
-
-  const escalationNextAction = (): string => {
-    const r = (thread.triggerReason || '').toLowerCase();
-    if (r.includes('legal') || r.includes('regulat')) return 'Do not admit liability or offer a settlement. Review and reply personally.';
-    if (r.includes('health') || r.includes('adverse')) return 'Advise the customer to stop use and consult a healthcare professional. Give no medical advice.';
-    if (r.includes('evidence')) return 'Request a photo or unboxing video before resolving or escalating further.';
-    if (r.includes('vip')) return 'VIP / priority account — respond personally and promptly.';
-    if (r.includes('angry') || r.includes('repeat') || r.includes('3rd')) return 'Repeat angry contact — de-escalate and reply personally.';
-    if (r.includes('attachment')) return 'An attachment needs human review before replying.';
-    return 'Flagged for human review — handle per policy before replying.';
-  };
-
-  const mine = thread.assignedTo === currentEmail;
+  const initials = thread.senderName.slice(0, 2).toUpperCase();
+  const isEscalated = thread.status === 'Escalated' || thread.sentiment === 'Angry'; // Simulate "Urgent" condition
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white overflow-hidden">
-      {/* Toolbar */}
-      <div className="px-5 py-3 border-b border-slate-200 flex items-center justify-between gap-3 shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
-          <button onClick={onBack} className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-500 hover:text-slate-800 transition-all cursor-pointer shrink-0">
-            <ArrowLeft className="w-4 h-4" />
-          </button>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-slate-800 truncate">{thread.senderName}</h3>
-              <span className={`px-2 py-0.5 text-[9px] font-bold rounded uppercase tracking-wider ${sentimentChip(thread.sentiment)}`}>{thread.sentiment}</span>
-              <span className="px-2 py-0.5 text-[9px] font-semibold rounded bg-slate-100 text-slate-600 hidden sm:inline">{thread.category}</span>
-            </div>
-            <p className="text-[10px] text-slate-400 font-mono mt-0.5 truncate">{thread.senderEmail} · Order {thread.orderId || 'N/A'}</p>
-          </div>
-        </div>
-
-        <div className="flex gap-2 shrink-0">
-          {mine ? (
-            <span className="px-2.5 py-1.5 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-lg flex items-center gap-1"><UserCheck className="w-3.5 h-3.5" /> Yours</span>
-          ) : (
-            <button onClick={() => onClaim(thread.id)} className="px-3 py-1.5 border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer">
-              <UserCheck className="w-3.5 h-3.5" /> Assign to me
+    <div className="flex-1 flex h-full bg-white overflow-hidden">
+      
+      {/* Main Conversation Area */}
+      <div className="flex-1 flex flex-col min-w-0 border-r border-slate-200">
+        
+        {/* Toolbar */}
+        <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between text-slate-500">
+          <div className="flex items-center gap-6">
+            <button onClick={onBack} className="hover:text-slate-800 transition-colors cursor-pointer">
+              <ArrowLeft className="w-5 h-5" />
             </button>
-          )}
-          <button onClick={runTriage} disabled={isTriaging} className="px-3 py-1.5 border border-slate-200 text-xs font-bold text-slate-600 hover:bg-slate-50 rounded-lg transition-all disabled:opacity-40 flex items-center gap-1.5 cursor-pointer">
-            <Tag className="w-3.5 h-3.5" /> {isTriaging ? 'Triaging…' : 'Re-run triage'}
-          </button>
-          <button onClick={handleEscalate} disabled={thread.status === 'Escalated'} className="px-3 py-1.5 border border-rose-200 text-xs font-bold text-rose-600 hover:bg-rose-50 rounded-lg transition-all disabled:opacity-30 flex items-center gap-1.5 cursor-pointer">
-            <AlertTriangle className="w-3.5 h-3.5" /> Escalate
-          </button>
-          <button onClick={generateAIDraft} disabled={isGenerating} className="px-3 py-1.5 bg-emerald-600 font-bold hover:bg-emerald-500 text-white rounded-lg text-xs flex items-center gap-1.5 transition-all shadow-sm active:scale-95 cursor-pointer">
-            <Sparkles className="w-3.5 h-3.5 fill-current" /> {isGenerating ? 'Generating…' : 'Generate AI Draft'}
-          </button>
-        </div>
-      </div>
-
-      {/* Escalation guidance */}
-      {thread.status === 'Escalated' && (
-        <div className="bg-rose-50 border-b border-rose-200 px-5 py-3 shrink-0 flex items-start gap-2.5">
-          <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[11px] font-bold text-rose-700">Escalated{thread.triggerReason ? `: ${thread.triggerReason}` : ''}</p>
-            <p className="text-[11px] text-rose-900/80 leading-snug"><span className="font-bold">Next:</span> {escalationNextAction()}</p>
+            <div className="flex items-center gap-4">
+              <Download className="w-5 h-5 cursor-pointer hover:text-slate-800 transition-colors" />
+              <AlertTriangle className="w-5 h-5 cursor-pointer hover:text-slate-800 transition-colors" />
+              <Trash2 className="w-5 h-5 cursor-pointer hover:text-slate-800 transition-colors" />
+              <div className="w-px h-5 bg-slate-200 mx-1"></div>
+              <Mail className="w-5 h-5 cursor-pointer hover:text-slate-800 transition-colors" />
+              <CheckCircle2 className="w-5 h-5 cursor-pointer hover:text-slate-800 transition-colors" />
+            </div>
+          </div>
+          <div className="flex items-center gap-3 text-xs font-medium">
+            {thread.assignedTo === currentEmail ? (
+              <span className="px-2 py-1 rounded bg-green-50 text-green-700 font-semibold flex items-center gap-1"><UserCheck className="w-3.5 h-3.5" /> Yours</span>
+            ) : (
+              <button onClick={() => onClaim(thread.id)} className="px-2.5 py-1 rounded border border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold flex items-center gap-1 cursor-pointer"><UserCheck className="w-3.5 h-3.5" /> Assign to me</button>
+            )}
+            <span className="px-2 py-0.5 rounded bg-slate-100 text-slate-600">{thread.category}</span>
           </div>
         </div>
-      )}
 
-      {/* Reading pane */}
-      <div className="flex-1 overflow-y-auto px-6 py-5 bg-slate-50/40">
-        <h2 className="text-base font-bold text-slate-800">{thread.topic}</h2>
-        {triageNote && (
-          <p className="text-[10px] font-semibold text-slate-500 mt-1 flex items-center gap-1.5"><Tag className="w-3 h-3 text-emerald-600 shrink-0" /> {triageNote}</p>
-        )}
-
-        <div className="mt-4 space-y-4">
-          {thread.messages.map((msg) => {
-            const isCustomer = msg.isCustomer;
-            return (
-              <div key={msg.id} className={`rounded-2xl border p-4 ${isCustomer ? 'bg-white border-slate-200' : 'bg-emerald-50/50 border-emerald-100'}`}>
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold ${isCustomer ? 'bg-slate-200 text-slate-700' : 'bg-emerald-100 text-emerald-800'}`}>
-                      {isCustomer ? thread.senderName.slice(0, 2).toUpperCase() : 'AI'}
-                    </div>
-                    <span className="text-xs font-bold text-slate-700">{isCustomer ? msg.sender : 'BeastLife Support AI'}</span>
-                  </div>
-                  <span className="text-[10px] font-mono text-slate-400">{msg.timestamp}</span>
-                </div>
-                <p className="text-sm text-slate-700 leading-relaxed whitespace-pre-wrap">{msg.content}</p>
+        {/* Thread Content */}
+        <div className="flex-1 overflow-y-auto px-8 py-6">
+          
+          {/* Subject & Badges */}
+          <div className="flex items-start justify-between mb-8">
+            <div>
+              <h2 className="text-xl font-bold text-slate-900 mb-3">{thread.topic}</h2>
+              <div className="flex items-center gap-2">
+                <span className="px-2 py-0.5 text-[10px] font-bold bg-slate-100 text-slate-600 rounded uppercase tracking-wider">Inbox</span>
+                {isEscalated && (
+                  <span className="px-2 py-0.5 text-[10px] font-bold bg-red-100 text-red-600 rounded uppercase tracking-wider flex items-center gap-1">
+                    ! Urgent
+                  </span>
+                )}
               </div>
-            );
-          })}
+            </div>
+            <button className="text-slate-400 hover:text-slate-600 cursor-pointer">
+              <Printer className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Messages */}
+          <div className="space-y-6">
+            {thread.messages.map((msg, idx) => {
+              const isCustomer = msg.isCustomer;
+              return (
+                <div key={msg.id} className="flex gap-4">
+                  {isCustomer ? (
+                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-sm font-bold text-slate-600 shrink-0">
+                      {initials}
+                    </div>
+                  ) : (
+                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-sm font-bold text-blue-600 shrink-0">
+                      AI
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex items-baseline gap-2">
+                        <span className="font-bold text-slate-900">{isCustomer ? thread.senderName : 'Support Agent'}</span>
+                        {isCustomer && <span className="text-xs text-slate-500">&lt;{thread.senderEmail}&gt;</span>}
+                      </div>
+                      <span className="text-xs text-slate-500">{msg.timestamp}</span>
+                    </div>
+                    <div className="bg-slate-100 rounded-2xl rounded-tl-sm p-4 text-slate-800 text-sm whitespace-pre-wrap leading-relaxed">
+                      {msg.content}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+
+            {/* AI Draft Section */}
+            {draftText && (
+              <div className="pt-6">
+                <div className="flex items-center gap-2 text-green-600 text-sm italic mb-4 ml-12">
+                  <Bot className="w-4 h-4" />
+                  {draftKbRefs.length > 0
+                    ? `AI drafted a reply grounded in: ${draftKbRefs[0].title}${draftKbRefs.length > 1 ? ` (+${draftKbRefs.length - 1} more)` : ''}`
+                    : 'AI drafted a reply for your review.'}
+                </div>
+
+                <div className="flex gap-4">
+                  <div className="w-10 h-10 rounded-full bg-green-500 flex items-center justify-center text-white shrink-0">
+                    <Bot className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="font-bold text-slate-900">Support Bot (Draft)</span>
+                      <span className="px-2 py-0.5 text-[10px] font-bold bg-green-100 text-green-700 rounded uppercase tracking-wider">
+                        {isEditing ? 'Editing' : 'Suggested Response'}
+                      </span>
+                    </div>
+                    {isEditing ? (
+                      <textarea
+                        value={draftText}
+                        onChange={(e) => setDraftText(e.target.value)}
+                        className="w-full h-40 bg-white border-2 border-green-200 rounded-2xl rounded-tl-sm p-4 text-slate-700 text-sm leading-relaxed shadow-sm focus:outline-none focus:ring-1 focus:ring-green-500 font-sans"
+                      />
+                    ) : (
+                      <div className="bg-white border-2 border-green-100 rounded-2xl rounded-tl-sm p-4 text-slate-700 text-sm whitespace-pre-wrap leading-relaxed shadow-sm">
+                        {draftText}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Reply composer */}
-      <div className="border-t border-slate-200 p-4 shrink-0 bg-white">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-bold text-emerald-600 flex items-center gap-1 uppercase tracking-wider">
-            <Sparkles className="w-3.5 h-3.5 text-emerald-500 fill-current" /> Reply
-            {isLocalSimulated && <span className="text-[9px] font-semibold text-slate-400 normal-case tracking-tight">(offline draft)</span>}
-          </span>
-          {draftText && (
-            <button onClick={() => { setDraftText(''); setDraftKbRefs([]); setDraftGrounded(null); }} className="text-[10px] font-bold text-slate-400 hover:text-rose-500 py-1 px-2 hover:bg-rose-50 rounded-lg">Discard</button>
-          )}
-        </div>
-
-        <textarea
-          value={draftText}
-          onChange={(e) => setDraftText(e.target.value)}
-          className="w-full h-28 border border-slate-200 rounded-xl p-3 text-sm focus:ring-1 focus:ring-emerald-500 focus:outline-none placeholder:text-slate-400 font-sans"
-          placeholder="Write a reply, or click 'Generate AI Draft' for a KB-grounded suggestion…"
-        />
-
-        {/* Subtle sources / grounding */}
-        {draftGrounded === true && draftKbRefs.length > 0 && (
-          <details className="mt-2 text-[11px]">
-            <summary className="cursor-pointer text-emerald-700 font-semibold flex items-center gap-1.5 list-none">
-              <BookOpen className="w-3 h-3" /> Grounded in {draftKbRefs.length} KB source{draftKbRefs.length === 1 ? '' : 's'}
-            </summary>
-            <ul className="mt-1.5 pl-4 space-y-1">
-              {draftKbRefs.map((r) => (
-                <li key={r.id} className="text-slate-500 flex items-center justify-between gap-2">
-                  <span className="truncate">{r.title}</span>
-                  <span className="font-mono text-slate-400 shrink-0">{Math.round(r.relevanceScore * 100)}%</span>
-                </li>
-              ))}
-            </ul>
-          </details>
-        )}
-        {draftGrounded === false && (
-          <p className="mt-2 text-[11px] text-amber-700 flex items-center gap-1.5"><AlertTriangle className="w-3 h-3 shrink-0" /> No relevant KB match — the draft asks the customer to clarify rather than inventing an answer.</p>
-        )}
-
-        <div className="flex justify-between items-center mt-3">
-          <p className="text-[10px] text-slate-400">Nothing sends until you approve. Approving logs the reply in the thread.</p>
-          <button
-            onClick={handleSendDraft}
-            disabled={!draftText.trim()}
-            className="px-4 py-2 bg-slate-900 border border-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 transition-all flex items-center gap-1.5 disabled:opacity-30 cursor-pointer"
-          >
-            <Send className="w-3.5 h-3.5" /> Approve &amp; Send
+        {/* Bottom Fixed Action Bar */}
+        <div className="px-6 py-4 border-t border-slate-200 bg-white flex items-center gap-3 shrink-0">
+          <button onClick={async () => { 
+            try {
+              await fetch(`/api/emails/${thread.id}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ body: draftText })
+              });
+              onUpdateThread({ ...thread, status: 'Replied' }); 
+              onBack(); 
+            } catch (err) {
+              console.error('Failed to send:', err);
+              alert('Failed to send email.');
+            }
+          }} className="flex-1 bg-[#0284c7] hover:bg-[#0369a1] text-white font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer">
+            <Mail className="w-4 h-4 fill-current" /> Approve & Send
+          </button>
+          <button onClick={() => setIsEditing((v) => !v)} className="flex-1 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer">
+            <FileText className="w-4 h-4" /> {isEditing ? 'Done editing' : 'Edit Draft'}
+          </button>
+          <button onClick={() => { onUpdateThread({ ...thread, status: 'Escalated' }); onBack(); }} className="flex-1 bg-red-50 hover:bg-red-100 text-red-600 font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 transition-colors cursor-pointer border border-red-100">
+            <AlertTriangle className="w-4 h-4" /> Escalate
           </button>
         </div>
       </div>
+
+      {/* AI Assistant Right Sidebar */}
+      <div className="w-[320px] bg-white flex flex-col shrink-0">
+        
+        {/* Header */}
+        <div className="px-5 py-5 border-b border-slate-100 flex items-center justify-between">
+          <div className="flex items-center gap-2 font-bold text-slate-800">
+            <Sparkles className="w-5 h-5 text-teal-600 fill-current" /> AI Assistant
+          </div>
+          <span className="px-2 py-1 text-[9px] font-bold bg-slate-100 text-slate-600 rounded uppercase tracking-wider">
+            Gemini 2.5 Flash
+          </span>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto px-5 py-6 space-y-8">
+          
+          {/* AI Brief (real) */}
+          <div>
+            <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2 mb-3">
+              <FileText className="w-3.5 h-3.5" /> AI Brief
+            </h4>
+            <div className="bg-slate-100 rounded-xl p-4 text-sm text-slate-700 leading-relaxed">
+              {thread.brief || 'No summary yet — run AI triage to generate one.'}
+            </div>
+          </div>
+
+          {/* Suggested Reply (real draft) */}
+          <div>
+            <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2 mb-3">
+              <MessageSquare className="w-3.5 h-3.5" /> Suggested Reply
+            </h4>
+            <div className="border border-slate-200 rounded-xl p-4 text-sm text-slate-700 leading-relaxed bg-white whitespace-pre-wrap">
+              {draftText || 'No draft yet. Use Re-generate to draft a KB-grounded reply.'}
+            </div>
+          </div>
+
+          {/* Sources Used (real) */}
+          <div>
+            <h4 className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2 mb-3">
+              <BookOpen className="w-3.5 h-3.5" /> Sources Used
+            </h4>
+            <div className="space-y-2">
+              {draftKbRefs.length > 0 ? (
+                draftKbRefs.map((ref) => (
+                  <div key={ref.id} className="w-full flex items-center justify-between gap-2 text-sm text-blue-600 bg-blue-50/50 border border-blue-200 rounded-lg px-3 py-2 text-left">
+                    <span className="flex items-center gap-2 min-w-0"><FileText className="w-4 h-4 shrink-0" /><span className="truncate">{ref.title}</span></span>
+                    <span className="text-[10px] font-mono text-blue-400 shrink-0">{Math.round(ref.relevanceScore * 100)}%</span>
+                  </div>
+                ))
+              ) : (
+                <p className="text-xs text-slate-400">No sources yet — generate a draft to see the KB passages it used.</p>
+              )}
+            </div>
+          </div>
+
+        </div>
+
+        {/* Sidebar Footer Actions */}
+        <div className="p-4 border-t border-slate-100 flex items-center justify-between text-slate-500">
+          <button onClick={regenerate} disabled={isGenerating} className="flex items-center gap-2 text-xs font-bold hover:text-slate-800 transition-colors cursor-pointer disabled:opacity-40">
+            <RefreshCw className={`w-3.5 h-3.5 ${isGenerating ? 'animate-spin' : ''}`} /> {isGenerating ? 'Generating…' : draftText ? 'Re-generate' : 'Generate draft'}
+          </button>
+        </div>
+
+      </div>
+
     </div>
   );
 }

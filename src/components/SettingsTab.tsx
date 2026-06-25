@@ -54,28 +54,28 @@ export default function SettingsTab({
   };
 
   return (
-    <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1.2fr_1fr] p-6 gap-6 bg-[#F8FAFC] overflow-y-auto">
+    <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1.2fr_1fr] p-6 gap-6 bg-[#F6F8FC] overflow-y-auto">
       
       {/* LEFT COLUMN: ACTIVE ESCALATION TRIGGERS */}
       <div className="space-y-6">
         
         {/* Title */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
-          <h3 className="text-sm font-bold text-slate-800">Dynamic Escalation & Routing Rules</h3>
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
+          <h3 className="text-sm font-semibold text-slate-800">Dynamic Escalation & Routing Rules</h3>
           <p className="text-[10px] text-slate-400 mt-0.5">Toggle criteria that trigger Tier 3 human agent alerts and bypass standard drafts</p>
         </div>
 
         {/* Rules List Box */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Operational triggers</h4>
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-4">
+          <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Operational triggers</h4>
 
           <div className="space-y-4">
             {rules.map((rule) => (
               <div 
                 key={rule.id}
-                className={`p-4 border rounded-xl flex items-start gap-4 transition-all ${
+                className={`p-4 border rounded-lg flex items-start gap-4 transition-all ${
                   rule.enabled 
-                    ? 'border-emerald-200 bg-emerald-50/10' 
+                    ? 'border-blue-200 bg-blue-50/10' 
                     : 'border-slate-200 bg-slate-50/30'
                 }`}
               >
@@ -83,7 +83,7 @@ export default function SettingsTab({
                 <button
                   onClick={() => handleToggleRule(rule.id)}
                   className={`w-10 h-6 rounded-full p-1 transition-all relative shrink-0 mt-0.5 cursor-pointer ${
-                    rule.enabled ? 'bg-emerald-600' : 'bg-slate-300'
+                    rule.enabled ? 'bg-[#1A73E8]' : 'bg-slate-300'
                   }`}
                 >
                   <div className={`w-4 h-4 bg-white rounded-full shadow transition-all ${
@@ -93,13 +93,13 @@ export default function SettingsTab({
 
                 <div className="flex-1 space-y-1">
                   <div className="flex items-center gap-2">
-                    <h5 className="text-xs font-bold text-slate-800">{rule.title}</h5>
+                    <h5 className="text-xs font-semibold text-slate-800">{rule.title}</h5>
                     {rule.enabled ? (
-                      <span className="text-[9px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded leading-none uppercase tracking-wide">
+                      <span className="text-[9px] font-semibold text-[#1A73E8] bg-blue-50 px-2 py-0.5 rounded leading-none uppercase tracking-wide">
                         Active
                       </span>
                     ) : (
-                      <span className="text-[9px] font-bold text-slate-400 bg-slate-100 px-2 py-0.5 rounded leading-none uppercase tracking-wide">
+                      <span className="text-[9px] font-semibold text-slate-400 bg-slate-100 px-2 py-0.5 rounded leading-none uppercase tracking-wide">
                         Standby
                       </span>
                     )}
@@ -122,12 +122,12 @@ export default function SettingsTab({
         </div>
 
         {/* Global LLM Safety Parameters */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4.5">
-          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">AI Quality Guardrails</h4>
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-4.5">
+          <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">AI Quality Guardrails</h4>
           
-          <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-lg border border-slate-200">
             <div className="space-y-1.5 pr-4 flex-1">
-              <h5 className="text-xs font-bold text-slate-800">Mandate Draft Co-Pilot Co-Signing</h5>
+              <h5 className="text-xs font-semibold text-slate-800">Mandate Draft Co-Pilot Co-Signing</h5>
               <p className="text-xs text-slate-500 leading-snug">
                 When enabled, AI automatically prepares draft emails but forbids transmission until a human reviews and approves. Disabling this flags standard Q&A queries for direct autoresponse.
               </p>
@@ -135,7 +135,7 @@ export default function SettingsTab({
             <button
               onClick={() => setAutoApproveQuality(!autoApproveQuality)}
               className={`w-10 h-6 rounded-full p-1 transition-all relative shrink-0 cursor-pointer ${
-                autoApproveQuality ? 'bg-emerald-600' : 'bg-slate-300'
+                autoApproveQuality ? 'bg-[#1A73E8]' : 'bg-slate-300'
               }`}
             >
               <div className={`w-4 h-4 bg-white rounded-full shadow transition-all ${
@@ -144,9 +144,9 @@ export default function SettingsTab({
             </button>
           </div>
 
-          <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-xl border border-slate-200">
+          <div className="flex items-center justify-between p-3.5 bg-slate-50 rounded-lg border border-slate-200">
             <div className="space-y-1.5 pr-4 flex-1">
-              <h5 className="text-xs font-bold text-slate-800">Quality complaint requires evidence before escalation</h5>
+              <h5 className="text-xs font-semibold text-slate-800">Quality complaint requires evidence before escalation</h5>
               <p className="text-xs text-slate-500 leading-snug">
                 For quality complaints (damaged, wrong item, missing, expired), the draft must request a photo or video and the batch number before the case can be escalated or marked resolved.
               </p>
@@ -154,7 +154,7 @@ export default function SettingsTab({
             <button
               onClick={() => setRequireEvidenceBeforeEscalation(!requireEvidenceBeforeEscalation)}
               className={`w-10 h-6 rounded-full p-1 transition-all relative shrink-0 cursor-pointer ${
-                requireEvidenceBeforeEscalation ? 'bg-emerald-600' : 'bg-slate-300'
+                requireEvidenceBeforeEscalation ? 'bg-[#1A73E8]' : 'bg-slate-300'
               }`}
             >
               <div className={`w-4 h-4 bg-white rounded-full shadow transition-all ${
@@ -169,12 +169,12 @@ export default function SettingsTab({
       <div className="space-y-6">
         
         {/* Workspace Routing Configuration */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Workspace metadata Routing</h4>
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-4">
+          <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Workspace metadata Routing</h4>
 
           <div className="space-y-4">
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-1">
                 <Mail className="w-3.5 h-3.5" />
                 Inbound support Inbox Alias
               </label>
@@ -182,12 +182,12 @@ export default function SettingsTab({
                 type="email" 
                 value={supportEmail}
                 onChange={(e) => setSupportEmail(e.target.value)}
-                className="w-full px-3 py-1.5 bg-[#FCFCFE] border border-slate-200 rounded-lg text-xs font-medium focus:ring-1 focus:ring-emerald-500 focus:outline-none"
+                className="w-full px-3 py-1.5 bg-[#FCFCFE] border border-slate-200 rounded-lg text-xs font-medium focus:ring-1 focus:ring-[#1A73E8] focus:outline-none"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] font-bold text-slate-400 uppercase tracking-widest flex items-center gap-1">
+              <label className="text-[10px] font-semibold text-slate-400 uppercase tracking-widest flex items-center gap-1">
                 <Webhook className="w-3.5 h-3.5" />
                 Slack Notifications webhook
               </label>
@@ -195,16 +195,16 @@ export default function SettingsTab({
                 type="text" 
                 value={slackWebhook}
                 onChange={(e) => setSlackWebhook(e.target.value)}
-                className="w-full px-3 py-1.5 bg-[#FCFCFE] border border-slate-200 rounded-lg text-xs font-medium focus:ring-1 focus:ring-emerald-500 focus:outline-none font-mono"
+                className="w-full px-3 py-1.5 bg-[#FCFCFE] border border-slate-200 rounded-lg text-xs font-medium focus:ring-1 focus:ring-[#1A73E8] focus:outline-none font-mono"
               />
             </div>
           </div>
         </div>
 
         {/* Change Active Agent profile - Visual fun! */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-4">
           <div>
-            <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Active Workspace Agent Profile</h4>
+            <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Active Workspace Agent Profile</h4>
             <p className="text-[10px] text-slate-400 mt-0.5">Determine whose personality handles live dashboard queues</p>
           </div>
 
@@ -218,19 +218,19 @@ export default function SettingsTab({
               <button
                 key={agnt.id}
                 onClick={() => setSelectedAgent(agnt.id)}
-                className={`p-3.5 border rounded-xl text-left transition-all cursor-pointer ${
+                className={`p-3.5 border rounded-lg text-left transition-all cursor-pointer ${
                   selectedAgent === agnt.id 
-                    ? 'border-emerald-500 bg-emerald-50/10 shadow-sm' 
+                    ? 'border-[#1A73E8] bg-blue-50/10 shadow-sm' 
                     : 'border-slate-200 hover:bg-slate-50'
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1.5">
-                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
-                    selectedAgent === agnt.id ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-500'
+                  <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold ${
+                    selectedAgent === agnt.id ? 'bg-[#1A73E8] text-white' : 'bg-slate-100 text-slate-500'
                   }`}>
                     {agnt.initial}
                   </div>
-                  <h5 className="text-[11px] font-bold text-slate-800 leading-tight">{agnt.id}</h5>
+                  <h5 className="text-[11px] font-semibold text-slate-800 leading-tight">{agnt.id}</h5>
                 </div>
                 <p className="text-[10px] text-slate-500 font-medium leading-tight">{agnt.title} &bull; {agnt.desc}</p>
               </button>
@@ -243,7 +243,7 @@ export default function SettingsTab({
           <button 
             onClick={handleSave}
             disabled={isSaving}
-            className="w-full py-2.5 bg-slate-900 border border-slate-900 text-white rounded-xl text-xs font-bold hover:bg-slate-800 hover:border-slate-800 transition-all flex items-center justify-center gap-1.5 shadow-lg active:scale-95 cursor-pointer"
+            className="w-full py-2.5 bg-slate-900 border border-slate-900 text-white rounded-lg text-xs font-semibold hover:bg-slate-800 hover:border-slate-800 transition-all flex items-center justify-center gap-1.5 shadow-lg active:scale-95 cursor-pointer"
           >
             <Save className={`w-3.5 h-3.5 ${isSaving ? 'animate-spin' : ''}`} />
             {isSaving ? 'Syncing...' : 'Save Workspace Parameters'}

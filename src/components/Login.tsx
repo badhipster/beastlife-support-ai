@@ -4,25 +4,25 @@ import { Zap, ShieldCheck } from 'lucide-react';
 // Sign-in screen. Real auth via Google; the server starts the OAuth login flow.
 export default function Login() {
   return (
-    <div className="min-h-screen w-full bg-[#0F172A] flex items-center justify-center p-6 font-sans text-slate-200">
+    <div className="min-h-screen w-full bg-[#F6F8FC] flex items-center justify-center p-6 font-sans text-slate-700">
       <div className="w-full max-w-sm text-center">
         <div className="flex items-center gap-3 mb-8 justify-center">
-          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+          <div className="w-10 h-10 bg-[#1A73E8] rounded-lg flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
             <Zap className="w-6 h-6 fill-current" />
           </div>
           <div className="text-left">
-            <h1 className="text-xl font-semibold text-white tracking-tight leading-tight">BeastLife</h1>
-            <p className="text-[10px] text-emerald-400/80 font-bold uppercase tracking-widest leading-none mt-0.5">Support AI</p>
+            <h1 className="text-xl font-semibold text-slate-900 tracking-tight leading-tight">BeastLife</h1>
+            <p className="text-[10px] text-[#1A73E8]/80 font-semibold uppercase tracking-widest leading-none mt-0.5">Support AI</p>
           </div>
         </div>
 
-        <div className="bg-white rounded-3xl p-8 shadow-2xl text-slate-800">
-          <h2 className="text-lg font-bold">Sign in</h2>
+        <div className="bg-white rounded-lg p-8 shadow-md border border-slate-200 text-slate-800">
+          <h2 className="text-lg font-semibold">Sign in</h2>
           <p className="text-sm text-slate-500 mt-1">Use your Google account to access the support workspace.</p>
 
           <a
             href="/api/auth/login"
-            className="mt-6 w-full inline-flex items-center justify-center gap-2.5 py-2.5 px-4 border border-slate-300 rounded-xl text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-all"
+            className="mt-6 w-full inline-flex items-center justify-center gap-2.5 py-2.5 px-4 border border-slate-300 rounded-lg text-sm font-semibold text-slate-700 hover:bg-[#F2F6FC] transition-all"
           >
             <svg className="w-4.5 h-4.5" viewBox="0 0 24 24" aria-hidden="true">
               <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.27-4.74 3.27-8.1z" />
@@ -34,7 +34,7 @@ export default function Login() {
           </a>
 
           <p className="text-[11px] text-slate-400 mt-4 leading-relaxed flex items-center justify-center gap-1.5">
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+            <ShieldCheck className="w-3.5 h-3.5 text-[#1A73E8] shrink-0" />
             OAuth 2.0 — we only read your name and email to create your account.
           </p>
         </div>
@@ -43,3 +43,4 @@ export default function Login() {
     </div>
   );
 }
+

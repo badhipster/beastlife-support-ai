@@ -42,22 +42,22 @@ export default function KnowledgeBaseTab() {
   };
 
   return (
-    <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_1.1fr] p-6 gap-6 bg-[#F8FAFC] overflow-y-auto">
+    <div className="flex-1 grid grid-cols-1 xl:grid-cols-[1fr_1.1fr] p-6 gap-6 bg-[#F6F8FC] overflow-y-auto">
       {/* LEFT: real KB structure */}
       <div className="space-y-6">
-        <div className="flex justify-between items-center bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <div className="flex justify-between items-center bg-white border border-slate-200 rounded-lg p-5 shadow-sm">
           <div>
-            <h3 className="text-sm font-bold text-slate-800">Knowledge Base</h3>
+            <h3 className="text-sm font-semibold text-slate-800">Knowledge Base</h3>
             <p className="text-[10px] text-slate-400 mt-0.5">Ingested from the BeastLife Knowledge Base, embedded for retrieval</p>
           </div>
-          <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100 px-2.5 py-1 rounded-lg">
+          <span className="text-[11px] font-semibold text-[#1A73E8] bg-blue-50 border border-blue-100 px-2.5 py-1 rounded-lg">
             {stats.totalChunks} chunks
           </span>
         </div>
 
         {/* Real category breakdown of the embedded index */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4">
-          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Indexed sections</h4>
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-4">
+          <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Indexed sections</h4>
           {stats.sections.length === 0 ? (
             <p className="text-xs text-slate-400 py-6 text-center">Loading sections…</p>
           ) : (
@@ -65,10 +65,10 @@ export default function KnowledgeBaseTab() {
               {stats.sections.map((sec) => (
                 <div
                   key={sec.category}
-                  className="p-4 border border-slate-200 bg-white hover:bg-slate-50 rounded-xl transition-all flex flex-col justify-between h-24"
+                  className="p-4 border border-slate-200 bg-white hover:bg-slate-50 rounded-lg transition-all flex flex-col justify-between h-24"
                 >
                   <div className="flex justify-between items-start">
-                    <h5 className="text-xs font-bold text-slate-800 leading-tight pr-2">{sec.category}</h5>
+                    <h5 className="text-xs font-semibold text-slate-800 leading-tight pr-2">{sec.category}</h5>
                     <FileText className="w-4 h-4 text-slate-400 shrink-0" />
                   </div>
                   <div className="flex justify-between items-baseline pt-2 text-[10px] text-slate-500 font-semibold border-t border-slate-100">
@@ -81,12 +81,12 @@ export default function KnowledgeBaseTab() {
         </div>
 
         {/* Honest source card (replaces the non-functional uploader) */}
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm flex items-start gap-3">
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm flex items-start gap-3">
           <div className="w-9 h-9 rounded-lg bg-slate-100 flex items-center justify-center text-slate-500 shrink-0">
             <Database className="w-4.5 h-4.5" />
           </div>
           <div className="space-y-1">
-            <h4 className="text-xs font-bold text-slate-700">How this index is built</h4>
+            <h4 className="text-xs font-semibold text-slate-700">How this index is built</h4>
             <p className="text-[11px] text-slate-500 leading-relaxed">
               The KB PDF is chunked per Q&amp;A pair, product, and policy section, embedded with
               <span className="font-semibold text-slate-600"> gemini-embedding-001</span>, and stored in Postgres (pgvector).
@@ -99,22 +99,22 @@ export default function KnowledgeBaseTab() {
 
       {/* RIGHT: real semantic retrieval playground */}
       <div className="space-y-6">
-        <div className="bg-[#1E293B] border border-slate-700 text-slate-200 rounded-2xl p-5 shadow-lg space-y-4">
+        <div className="bg-white border border-slate-200 text-slate-700 rounded-lg p-5 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
-            <span className="text-[10px] font-bold text-emerald-400 bg-emerald-500/10 px-2.5 py-1 rounded-full uppercase tracking-wider">
+            <span className="text-[10px] font-semibold text-[#1A73E8] bg-blue-50 px-2.5 py-1 rounded-full uppercase tracking-wider">
               Verification Zone
             </span>
-            <Sparkles className="w-4 h-4 text-emerald-400 fill-current animate-pulse" />
+            <Sparkles className="w-4 h-4 text-[#1A73E8] fill-current animate-pulse" />
           </div>
-          <h3 className="text-sm font-bold text-white tracking-tight leading-tight">Semantic RAG Playground</h3>
-          <p className="text-slate-300 text-xs leading-relaxed">
+          <h3 className="text-sm font-semibold text-slate-800 tracking-tight leading-tight">Semantic RAG Playground</h3>
+          <p className="text-slate-500 text-xs leading-relaxed">
             Type a customer concern and see the actual pgvector chunks the system would retrieve, with real
             cosine similarity scores computed server-side.
           </p>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm space-y-4.5">
-          <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Sandbox searcher</h4>
+        <div className="bg-white border border-slate-200 rounded-lg p-5 shadow-sm space-y-4.5">
+          <h4 className="text-xs font-semibold text-slate-700 uppercase tracking-wider">Sandbox searcher</h4>
 
           <div className="relative">
             <input
@@ -122,12 +122,12 @@ export default function KnowledgeBaseTab() {
               value={ragQuery}
               onChange={(e) => setRagQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && runRAGSearch()}
-              className="w-full pl-3 pr-10 py-2 border border-slate-200 rounded-xl text-xs focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full pl-3 pr-10 py-2 border border-slate-200 rounded-lg text-xs focus:outline-none focus:ring-1 focus:ring-[#1A73E8]"
               placeholder="e.g. My mass gainer smells sour, is it spoiled?"
             />
             <button
               onClick={runRAGSearch}
-              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-emerald-600 cursor-pointer"
+              className="absolute right-1.5 top-1/2 -translate-y-1/2 p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-[#1A73E8] cursor-pointer"
             >
               <Search className="w-4.5 h-4.5" />
             </button>
@@ -135,7 +135,7 @@ export default function KnowledgeBaseTab() {
 
           <button
             onClick={runRAGSearch}
-            className="w-full py-2 border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-xl text-xs font-bold text-slate-700 transition-all cursor-pointer flex items-center justify-center gap-1.5"
+            className="w-full py-2 border border-slate-200 bg-slate-50 hover:bg-slate-100 rounded-lg text-xs font-semibold text-slate-700 transition-all cursor-pointer flex items-center justify-center gap-1.5"
             disabled={isRetrieving}
           >
             <RefreshCw className={`w-3.5 h-3.5 text-slate-500 ${isRetrieving ? 'animate-spin' : ''}`} />
@@ -143,11 +143,11 @@ export default function KnowledgeBaseTab() {
           </button>
 
           <div className="space-y-4 pt-2">
-            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Top retrieved chunks</p>
+            <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Top retrieved chunks</p>
 
             {isRetrieving ? (
               <div className="text-center py-12 text-slate-400">
-                <Sparkles className="w-6 h-6 text-emerald-500 animate-pulse mx-auto" />
+                <Sparkles className="w-6 h-6 text-[#1A73E8] animate-pulse mx-auto" />
                 <p className="text-xs mt-2">Computing cosine similarities on server…</p>
               </div>
             ) : results.length === 0 ? (
@@ -159,16 +159,16 @@ export default function KnowledgeBaseTab() {
                   return (
                     <div
                       key={chunk.id}
-                      className="border border-slate-200 rounded-xl p-3 bg-white shadow-sm space-y-2 hover:border-slate-300 transition-all"
+                      className="border border-slate-200 rounded-lg p-3 bg-white shadow-sm space-y-2 hover:border-slate-300 transition-all"
                     >
                       <div className="flex justify-between items-baseline">
                         <div>
-                          <span className="text-[8px] font-mono font-bold bg-slate-100 border border-slate-200 text-slate-500 px-1.5 py-0.5 rounded">
+                          <span className="text-[8px] font-mono font-semibold bg-slate-100 border border-slate-200 text-slate-500 px-1.5 py-0.5 rounded">
                             {chunk.sourceId}
                           </span>
-                          <h6 className="text-[11px] font-bold text-slate-800 leading-tight mt-1">{chunk.title}</h6>
+                          <h6 className="text-[11px] font-semibold text-slate-800 leading-tight mt-1">{chunk.title}</h6>
                         </div>
-                        <span className="text-[10px] font-black text-emerald-700 bg-emerald-50 border border-emerald-100 px-1.5 py-0.5 rounded leading-none">
+                        <span className="text-[10px] font-semibold text-[#1A73E8] bg-blue-50 border border-blue-100 px-1.5 py-0.5 rounded leading-none">
                           {relevancePercent}%
                         </span>
                       </div>

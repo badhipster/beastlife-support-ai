@@ -148,7 +148,7 @@ export default function App() {
 
   // Auth + onboarding gate.
   if (me === undefined) {
-    return <div className="min-h-screen bg-[#0F172A] flex items-center justify-center text-slate-400 text-sm">Loading…</div>;
+    return <div className="min-h-screen bg-white flex items-center justify-center text-slate-500 text-sm">Loading…</div>;
   }
   if (me === null) {
     return <Login />;
@@ -162,8 +162,8 @@ export default function App() {
 
       {/* Gmail connect confirmation toast (after OAuth redirect) */}
       {gmailNotice && (
-        <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-xl shadow-lg border text-xs font-semibold flex items-center gap-2 ${
-          gmailNotice.ok ? 'bg-emerald-600 text-white border-emerald-700' : 'bg-rose-600 text-white border-rose-700'
+        <div className={`fixed top-4 right-4 z-[100] px-4 py-3 rounded-lg shadow-lg border text-xs font-semibold flex items-center gap-2 ${
+          gmailNotice.ok ? 'bg-green-600 text-white border-green-700' : 'bg-rose-600 text-white border-rose-700'
         }`}>
           {gmailNotice.ok
             ? `Gmail connected${gmailNotice.email ? ` — ${gmailNotice.email}` : ''}. New mail will appear within ~60s.`
@@ -201,6 +201,7 @@ export default function App() {
           allCount={threads.length}
           queueCount={threads.filter(t => me.email && t.assignedTo === me.email).length}
           openaiModel="Gemini 2.5 Flash"
+          user={{ name: me.name, email: me.email, picture: me.picture }}
         />
 
         {/* MAIN VISUAL WORKSPACE PANEL */}

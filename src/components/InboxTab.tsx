@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { EmailThread, Sentiment } from '../types';
-import { Sparkles, CircleDot, AlertTriangle } from 'lucide-react';
+import { AlertTriangle, Square, Star, RefreshCw, MoreVertical, Gauge, Bot, Sparkles } from 'lucide-react';
 
 interface InboxTabProps {
   threads: EmailThread[];
@@ -10,132 +10,150 @@ interface InboxTabProps {
 }
 
 export default function InboxTab({ threads, onSelectThread, searchQuery, currentEmail }: InboxTabProps) {
-  const [selectedCategory, setSelectedCategory] = useState<string>('All');
-  const [selectedSentiment, setSelectedSentiment] = useState<string>('All');
-  const [selectedStatus, setSelectedStatus] = useState<string>('All');
-
-  const categories = ['All', 'Product Issue', 'Billing', 'Legal', 'Return/Refund', 'Delivery', 'General', 'Feedback', 'Spam'];
-  const sentiments = ['All', 'Frustrated', 'Angry', 'Neutral', 'Sad', 'Happy'];
-  const statuses = ['All', 'Open', 'Escalated', 'Replied', 'In Queue', 'Closed'];
-
+  
   const filtered = threads.filter((t) => {
     const q = searchQuery.toLowerCase();
-    const matchesSearch =
+    return (
       t.senderName.toLowerCase().includes(q) ||
       t.senderEmail.toLowerCase().includes(q) ||
-      t.topic.toLowerCase().includes(q) ||
-      (t.brief || '').toLowerCase().includes(q);
-    const matchesCategory = selectedCategory === 'All' || t.category === selectedCategory;
-    const matchesSentiment = selectedSentiment === 'All' || t.sentiment === selectedSentiment;
-    const matchesStatus = selectedStatus === 'All' || t.status === selectedStatus;
-    return matchesSearch && matchesCategory && matchesSentiment && matchesStatus;
+      t.topic.toLowerCase().includes(q)
+    );
   });
 
-  const sentimentChip = (sentiment: Sentiment) => {
-    switch (sentiment) {
-      case 'Angry': return 'bg-red-50 text-red-700';
-      case 'Frustrated': return 'bg-orange-50 text-orange-700';
-      case 'Sad': return 'bg-blue-50 text-blue-700';
-      case 'Happy': return 'bg-green-50 text-green-700';
-      default: return 'bg-slate-100 text-slate-500';
-    }
-  };
-
-  const avatarBg = (name: string) => {
-    const hash = name.split('').reduce((a, c) => a + c.charCodeAt(0), 0);
-    const colors = ['bg-orange-100 text-orange-700', 'bg-pink-100 text-pink-700', 'bg-purple-100 text-purple-700', 'bg-blue-100 text-blue-700', 'bg-emerald-100 text-emerald-700', 'bg-rose-100 text-rose-700'];
-    return colors[hash % colors.length];
-  };
-
-  const select = (value: string, set: (v: string) => void, opts: string[], label: string) => (
-    <div className="flex items-center gap-1.5">
-      <span className="text-[11px] text-slate-400">{label}:</span>
-      <select
-        value={value}
-        onChange={(e) => set(e.target.value)}
-        className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-medium border border-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
-      >
-        {opts.map((o) => <option key={o} value={o}>{o}</option>)}
-      </select>
-    </div>
-  );
+  // Real KPI values from the loaded threads.
+  const draftsReady = threads.filter((t) => t.draftStatus === 'Draft ready' || t.draftStatus === 'Draft prepared').length;
+  const escalated = threads.filter((t) => t.status === 'Escalated');
+  const awaiting = threads.filter((t) => t.status !== 'Replied' && t.status !== 'Closed').length;
+  const draftPct = threads.length ? Math.round((draftsReady / threads.length) * 100) : 0;
 
   return (
-    <div className="flex flex-col flex-1 bg-white">
-      {/* Slim filter bar */}
-      <div className="px-5 py-2.5 flex flex-wrap items-center gap-3 border-b border-slate-200 bg-white">
-        {select(selectedCategory, setSelectedCategory, categories, 'Category')}
-        {select(selectedSentiment, setSelectedSentiment, sentiments, 'Sentiment')}
-        {select(selectedStatus, setSelectedStatus, statuses, 'Status')}
-        <span className="ml-auto text-[11px] text-slate-400">{filtered.length} {filtered.length === 1 ? 'email' : 'emails'}</span>
-      </div>
-
-      {/* Gmail-style list */}
-      <div className="flex-1 overflow-y-auto">
-        {filtered.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 text-slate-400">
-            <p className="text-sm font-medium">No emails here.</p>
-            <p className="text-xs mt-1">New mail to the connected inbox appears within ~60s.</p>
+    <div className="flex flex-col flex-1 p-6 overflow-y-auto gap-6">
+      
+      {/* Email List Card */}
+      <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden flex flex-col shrink-0">
+        
+        {/* List Header Actions */}
+        <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between text-slate-500">
+          <div className="flex items-center gap-4">
+            <Square className="w-4 h-4 cursor-pointer hover:text-slate-800 transition-colors" />
+            <RefreshCw className="w-4 h-4 cursor-pointer hover:text-slate-800 transition-colors" />
+            <MoreVertical className="w-4 h-4 cursor-pointer hover:text-slate-800 transition-colors" />
           </div>
-        ) : (
-          filtered.map((thread) => {
-            const needsAttention = thread.status !== 'Replied' && thread.status !== 'Closed';
-            const isEscalated = thread.status === 'Escalated';
-            const draftReady = thread.draftStatus === 'Draft ready' || thread.draftStatus === 'Draft prepared';
-            const initials = thread.senderName.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase();
-            const mine = currentEmail && thread.assignedTo === currentEmail;
-            return (
-              <div
-                key={thread.id}
-                onClick={() => onSelectThread(thread)}
-                className={`group flex items-center gap-3 pr-5 py-2.5 cursor-pointer border-b border-slate-100 transition-colors ${
-                  isEscalated ? 'bg-rose-50/40 border-l-2 border-l-rose-400 pl-[18px]' : 'hover:bg-slate-50 pl-5'
-                }`}
-              >
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-[10px] shrink-0 ${avatarBg(thread.senderName)}`}>
-                  {initials}
-                </div>
+          <div className="flex items-center gap-4 text-xs">
+            <span>{filtered.length} {filtered.length === 1 ? 'email' : 'emails'}</span>
+          </div>
+        </div>
 
-                {/* Sender */}
-                <div className="w-40 shrink-0 truncate flex items-center">
-                  <span className={`text-xs truncate ${needsAttention ? 'font-bold text-slate-900' : 'font-medium text-slate-500'}`}>
-                    {thread.senderName}
-                  </span>
-                  {mine && <span className="ml-1.5 text-[8px] font-bold text-emerald-600 bg-emerald-50 px-1 py-0.5 rounded uppercase">You</span>}
-                </div>
+        {/* List Items */}
+        <div className="flex flex-col">
+          {filtered.length === 0 ? (
+            <div className="py-12 text-center text-slate-500 text-sm">No emails match your search.</div>
+          ) : (
+            filtered.map((thread) => {
+              const needsAttention = thread.status !== 'Replied' && thread.status !== 'Closed';
+              const isEscalated = thread.status === 'Escalated';
 
-                {/* Subject + snippet */}
-                <div className="flex-1 min-w-0 flex items-baseline gap-2">
-                  <span className={`text-xs truncate ${needsAttention ? 'font-semibold text-slate-800' : 'text-slate-500'}`}>{thread.topic}</span>
-                  <span className="text-xs text-slate-400 truncate hidden lg:inline">— {thread.brief}</span>
-                </div>
+              return (
+                <div
+                  key={thread.id}
+                  onClick={() => onSelectThread(thread)}
+                  className={`group flex items-center px-4 py-3 cursor-pointer border-b border-slate-100 transition-all ${
+                    isEscalated
+                      ? 'bg-rose-50/40 border-l-4 border-l-rose-400'
+                      : 'hover:bg-slate-50 border-l-4 border-l-transparent'
+                  }`}
+                >
+                  {/* Left Controls */}
+                  <div className="flex items-center gap-4 shrink-0 mr-4 text-slate-300">
+                    <Square className="w-4 h-4 hover:text-slate-500" />
+                    <Star className="w-4 h-4 hover:text-yellow-400" />
+                  </div>
 
-                {/* Labels */}
-                <div className="flex items-center gap-1.5 shrink-0">
-                  {isEscalated && (
-                    <span className="text-[9px] font-bold text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded uppercase tracking-tight flex items-center gap-0.5">
-                      <AlertTriangle className="w-2.5 h-2.5" /> Escalated
+                  {/* Sender */}
+                  <div className="w-48 shrink-0 truncate">
+                    <span className={`text-sm truncate ${needsAttention ? 'font-bold text-slate-800' : 'font-medium text-slate-600'}`}>
+                      {thread.senderName}
                     </span>
-                  )}
-                  <span className="text-[9px] font-semibold bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded hidden sm:inline">{thread.category}</span>
-                  {thread.sentiment !== 'Neutral' && (
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tight hidden md:flex items-center gap-0.5 ${sentimentChip(thread.sentiment)}`}>
-                      <CircleDot className="w-2 h-2 fill-current" /> {thread.sentiment}
-                    </span>
-                  )}
-                  {draftReady && (
-                    <span className="text-emerald-600" title="Draft ready">
-                      <Sparkles className="w-3.5 h-3.5 fill-current" />
-                    </span>
-                  )}
-                </div>
+                  </div>
 
-                <span className="text-[10px] text-slate-400 w-16 text-right shrink-0">{thread.waitingTime}</span>
-              </div>
-            );
-          })
-        )}
+                  {/* Subject & Pill */}
+                  <div className="flex-1 min-w-0 flex items-center gap-3">
+                    <span className={`text-sm truncate ${needsAttention ? 'font-bold text-slate-800' : 'text-slate-600'}`}>
+                      {thread.topic}
+                    </span>
+                    {thread.category && (
+                      <span className="text-[10px] font-bold bg-slate-200 text-slate-600 px-2 py-0.5 rounded uppercase tracking-wide shrink-0">
+                        {thread.category}
+                      </span>
+                    )}
+                  </div>
+
+                  {/* Time */}
+                  <div className="w-24 text-right shrink-0">
+                    <span className={`text-xs ${needsAttention ? 'font-bold text-slate-800' : 'text-slate-500'}`}>
+                      {thread.waitingTime}
+                    </span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
       </div>
+
+      {/* Bottom KPI Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 shrink-0">
+        
+        {/* Card 1: Awaiting reply (real) */}
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between">
+          <div className="flex items-center gap-2 text-slate-600 text-sm font-medium mb-4">
+            <Gauge className="w-4 h-4 text-blue-500" /> Awaiting reply
+          </div>
+          <div>
+            <div className="flex items-baseline gap-3">
+              <span className="text-3xl font-bold text-slate-900">{awaiting}</span>
+            </div>
+            <p className="text-xs text-slate-500 mt-1">Open emails still needing a response.</p>
+          </div>
+        </div>
+
+        {/* Card 2: AI draft coverage (real) */}
+        <div className="bg-[#F8FAFC] rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between relative overflow-hidden">
+          <Bot className="absolute -right-4 -bottom-4 w-24 h-24 text-slate-200 opacity-50" />
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 text-slate-600 text-sm font-medium mb-4">
+              <Sparkles className="w-4 h-4 text-green-600" /> AI draft coverage
+            </div>
+            <div>
+              <div className="flex items-baseline gap-3">
+                <span className="text-3xl font-bold text-slate-900">{draftPct}%</span>
+              </div>
+              <p className="text-xs text-slate-500 mt-1">{draftsReady} of {threads.length} have a draft ready.</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 3: Triage Alert (real) */}
+        <div className="bg-[#111827] rounded-xl shadow-sm p-5 flex flex-col justify-between text-white">
+          <div className="flex items-center gap-2 text-green-400 text-sm font-medium mb-3">
+            <AlertTriangle className="w-4 h-4" /> Triage Alert
+          </div>
+          <div>
+            <p className="text-sm text-slate-200 leading-snug mb-4">
+              {escalated.length > 0
+                ? `${escalated.length} email${escalated.length === 1 ? '' : 's'} flagged for human review.`
+                : 'No escalations right now — the queue is clear.'}
+            </p>
+            {escalated.length > 0 && (
+              <button onClick={() => onSelectThread(escalated[0])} className="w-full bg-green-700 hover:bg-green-600 text-white text-sm font-bold py-2 rounded-lg transition-colors cursor-pointer">
+                Review now
+              </button>
+            )}
+          </div>
+        </div>
+
+      </div>
+
     </div>
   );
 }
