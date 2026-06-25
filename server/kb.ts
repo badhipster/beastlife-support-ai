@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { embedText } from './llm';
-import { searchKbChunks, kbChunkCount, kbCategoryCounts } from './db/repo';
+import { searchKbChunks, kbChunkCount, kbCategoryCounts, kbChunkBySourceId } from './db/repo';
 
 export interface KBChunk {
   id: string;
@@ -123,6 +123,18 @@ export async function kbStats(): Promise<KbStats> {
   INDEX.forEach((e) => map.set(e.category, (map.get(e.category) || 0) + 1));
   const sections = [...map.entries()].map(([category, count]) => ({ category, count })).sort((a, b) => b.count - a.count);
   return { totalChunks: INDEX.length, sections };
+}
+
+// Fetch a single KB passage by its source_id so the dashboard can link a
+// draft's cited sources to the exact text. Prefers Postgres, falls back to the
+// in-memory index (same source the retriever uses).
+export async function getKbSource(sourceId: string): Promise<KBChunk | null> {
+  if (await usePgvector()) {
+    const row = await kbChunkBySourceId(sourceId);
+    if (row) return row;
+  }
+  const e = INDEX.find((x) => x.sourceId === sourceId);
+  return e ? { id: e.sourceId, sourceId: e.sourceId, title: e.title, text: e.text, category: e.category } : null;
 }
 
 export async function retrieveKB(query: string, k = 4): Promise<RetrieveResult> {

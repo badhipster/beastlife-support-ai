@@ -63,6 +63,30 @@ export async function generateText({ system, prompt, temperature = 0.7, response
 }
 
 /**
+ * Generate text with Gemini as a stream.
+ */
+export async function* generateTextStream({ system, prompt, temperature = 0.7 }: GenerateTextArgs): AsyncGenerator<string, void, unknown> {
+  const ai = getGeminiClient();
+  if (!ai) {
+    throw new Error('LLM not configured');
+  }
+  const responseStream = await ai.models.generateContentStream({
+    model: GEN_MODEL,
+    contents: prompt,
+    config: {
+      ...(system ? { systemInstruction: system } : {}),
+      temperature,
+    },
+  });
+  
+  for await (const chunk of responseStream) {
+    if (chunk.text) {
+      yield chunk.text;
+    }
+  }
+}
+
+/**
  * Embed a single piece of text. Throws if the client is unconfigured or the
  * API call fails. Used for KB ingestion (build time) and query retrieval.
  */

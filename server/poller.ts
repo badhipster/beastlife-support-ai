@@ -73,7 +73,10 @@ async function ingestOne(messageId: string): Promise<void> {
   );
 
   const { classification } = await classifyEmail(email.subject, email.body);
-  await saveClassification(threadId, classification.categories, classification.sentiment, classification.intent, 'gemini-2.5-flash');
+  // Prefer the model's one-line summary as the AI Brief; fall back to a body
+  // excerpt only when offline (no summary available).
+  const brief = classification.summary?.trim() || email.body.slice(0, 140);
+  await saveClassification(threadId, classification.categories, classification.sentiment, classification.intent, 'gemini-2.5-flash', brief);
 
   const escalation = evaluateEscalation({
     subject: email.subject,

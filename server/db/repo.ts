@@ -4,12 +4,12 @@
 import { isDbConfigured, query } from './pool';
 import { INITIAL_THREADS, INITIAL_RULES } from '../../src/data/mockData';
 import type { EmailThread, Message, SettingsRule } from '../../src/types';
-import type { RetrievedChunk } from '../kb';
+import type { RetrievedChunk, KBChunk } from '../kb';
 
 const THREAD_SELECT = `
   select t.id, t.topic, t.brief, t.category, t.sentiment, t.intent, t.status,
          t.draft_status, t.trigger_reason, t.contact_count, t.order_id,
-         t.has_attachment, t.waiting_time, t.assigned_to,
+         t.has_attachment, t.waiting_time, t.created_at, t.assigned_to,
          s.email as sender_email, s.display_name as sender_name, s.vip,
          coalesce(
            json_agg(
@@ -36,11 +36,28 @@ interface ThreadRow {
   order_id: string | null;
   has_attachment: boolean;
   waiting_time: string | null;
+  created_at: string | null;
   sender_email: string | null;
   sender_name: string | null;
   vip: boolean | null;
   assigned_to: string | null;
   messages: Message[];
+}
+
+// Live "received X ago" label computed at query time, so it stays current as
+// time passes (the static waiting_time column was frozen at ingest).
+function relativeTime(d: string | null): string {
+  if (!d) return '';
+  const then = new Date(d).getTime();
+  if (Number.isNaN(then)) return '';
+  const sec = Math.max(0, Math.floor((Date.now() - then) / 1000));
+  if (sec < 45) return 'just now';
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min}m ago`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `${hr}h ago`;
+  const day = Math.floor(hr / 24);
+  return `${day}d ago`;
 }
 
 function rowToThread(r: ThreadRow): EmailThread {
@@ -54,7 +71,7 @@ function rowToThread(r: ThreadRow): EmailThread {
     brief: r.brief || '',
     draftStatus: (r.draft_status as EmailThread['draftStatus']) || 'Needs action',
     status: (r.status as EmailThread['status']) || 'Open',
-    waitingTime: r.waiting_time || '',
+    waitingTime: relativeTime(r.created_at),
     orderId: r.order_id || '',
     contactCount: r.contact_count,
     messages: r.messages || [],
@@ -76,7 +93,7 @@ export async function claimThread(threadId: string, assignee: string): Promise<E
 
 export async function listThreads(): Promise<EmailThread[]> {
   if (!isDbConfigured()) return INITIAL_THREADS;
-  const rows = await query<ThreadRow>(`${THREAD_SELECT} group by t.id, s.email, s.display_name, s.vip order by t.created_at`);
+  const rows = await query<ThreadRow>(`${THREAD_SELECT} group by t.id, s.email, s.display_name, s.vip order by t.created_at desc`);
   return rows.map(rowToThread);
 }
 
@@ -167,6 +184,18 @@ export async function searchKbChunks(embedding: number[], k: number): Promise<Re
   }));
 }
 
+// One KB chunk by its stable source_id, for linking a draft's cited sources
+// back to the underlying passage. Returns null when not in Postgres.
+export async function kbChunkBySourceId(sourceId: string): Promise<KBChunk | null> {
+  if (!isDbConfigured()) return null;
+  const rows = await query<any>(
+    'select source_id, title, category, content from kb_chunks where source_id = $1 limit 1',
+    [sourceId]
+  );
+  const r = rows[0];
+  return r ? { id: r.source_id, sourceId: r.source_id, title: r.title, text: r.content, category: r.category } : null;
+}
+
 export async function kbChunkCount(): Promise<number> {
   if (!isDbConfigured()) return 0;
   const rows = await query<{ count: string }>('select count(*)::text as count from kb_chunks');
@@ -224,6 +253,18 @@ export async function upsertUser(args: { googleSub: string; email: string; name:
     [args.googleSub, args.email, args.name, args.picture]
   );
   return rows[0];
+}
+
+export async function listUsers(): Promise<SessionUser[]> {
+  if (!isDbConfigured()) {
+    return [
+      { id: 1, name: 'Alex Carter', email: 'alex@beastlife.com', role: 'agent', picture: '' } as any,
+      { id: 2, name: 'Marcus Chen', email: 'marcus@beastlife.com', role: 'agent', picture: '' } as any,
+      { id: 3, name: 'Support Admin', email: 'admin@beastlife.com', role: 'admin', picture: '' } as any
+    ];
+  }
+  const rows = await query<SessionUser>('select id, email, name, picture, role from users order by name asc');
+  return rows;
 }
 
 export async function setUserSession(id: number, token: string): Promise<void> {
@@ -294,7 +335,12 @@ export async function ingestInbound(thread: IngestThread, message: IngestMessage
     `insert into threads (id, gmail_thread_id, sender_id, topic, brief, status, draft_status,
                           contact_count, has_attachment, waiting_time)
      values ($1,$2,$3,$4,$5,'Open','Needs action',$6,$7,'just now')
-     on conflict (id) do update set contact_count = excluded.contact_count, updated_at = now()`,
+     on conflict (id) do update set 
+       contact_count = excluded.contact_count, 
+       updated_at = now(),
+       created_at = now(),
+       status = 'Open',
+       draft_status = 'Needs action'`,
     [thread.id, thread.gmailThreadId, senderId, thread.topic, thread.brief, thread.contactCount, thread.hasAttachment]
   );
 
@@ -312,12 +358,16 @@ export async function saveClassification(
   categories: string[],
   sentiment: string,
   intent: string,
-  model: string
+  model: string,
+  // Agent-facing one-liner used as the thread's AI Brief. Empty (offline mode)
+  // leaves the existing brief untouched.
+  brief = ''
 ): Promise<void> {
   if (!isDbConfigured()) return;
   await query(
-    `update threads set category = $2, sentiment = $3, intent = $4, updated_at = now() where id = $1`,
-    [threadId, categories[0] || 'General', sentiment, intent]
+    `update threads set category = $2, sentiment = $3, intent = $4,
+            brief = coalesce(nullif($5, ''), brief), updated_at = now() where id = $1`,
+    [threadId, categories[0] || 'General', sentiment, intent, brief.trim()]
   );
   await query(
     `insert into classifications (thread_id, categories, sentiment, intent, model) values ($1,$2,$3,$4,$5)`,
@@ -364,6 +414,18 @@ export async function latestDraftFull(
   );
   const r = rows[0];
   return r ? { body: r.body, kbRefs: r.kb_refs ?? [], grounded: r.grounded } : null;
+}
+
+// Append the agent's approved reply to the thread as an outbound message, so the
+// conversation history and dashboard show what was actually sent.
+export async function saveOutboundMessage(threadId: string, body: string, sender: string, displayTs: string): Promise<void> {
+  if (!isDbConfigured()) return;
+  const id = `msg-out-${threadId}-${Date.now()}`;
+  await query(
+    `insert into messages (id, thread_id, sender, direction, content, is_customer, display_ts)
+     values ($1, $2, $3, 'outbound', $4, false, $5)`,
+    [id, threadId, sender, body, displayTs]
+  );
 }
 
 export async function markReplied(threadId: string, draftId: number | null): Promise<void> {
